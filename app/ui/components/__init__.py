@@ -1,6 +1,5 @@
 from app.ui.components.titlebar import CustomTitleBar, NativeTitleBar
 from app.ui.components.sidebar import Sidebar
-from app.ui.components.topbar import TopBar
 from app.ui.components.stat_card import StatCard
 from app.ui.components.modern_table import ModernTable
 from app.ui.components.card import Card
@@ -14,7 +13,7 @@ from app.ui.components.participant_checklist import ParticipantChecklist
 from app.ui.components.collapsible_section import CollapsibleSection
 
 __all__ = [
-    "CustomTitleBar", "NativeTitleBar", "Sidebar", "TopBar",
+    "CustomTitleBar", "NativeTitleBar", "Sidebar",
     "StatCard", "ModernTable", "Card", "SearchBar", "ModernButton",
     "IconButton", "AvatarWidget", "NotificationButton", "QuickAction",
     "ParticipantChecklist", "CollapsibleSection",

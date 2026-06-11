@@ -130,30 +130,6 @@ class GeneratePage(QWidget):
 
         self.peserta_checklist = ParticipantChecklist()
 
-        btn_bar = QHBoxLayout()
-        btn_bar.setSpacing(8)
-
-        def make_komisi_btn(text, komisi_key):
-            btn = QPushButton(text)
-            btn.clicked.connect(lambda: self.peserta_checklist.select_all_by_komisi(komisi_key))
-            return btn
-
-        btn_bar.addWidget(make_komisi_btn("Pilih Komisi A", "A"))
-        btn_bar.addWidget(make_komisi_btn("Pilih Komisi B", "B"))
-        btn_bar.addWidget(make_komisi_btn("Pilih Komisi C", "C"))
-        btn_bar.addWidget(make_komisi_btn("Pilih Pimpinan", "Pimpinan"))
-        btn_bar.addStretch()
-
-        btn_all = QPushButton("Semua")
-        btn_all.clicked.connect(self.peserta_checklist.select_all)
-        btn_bar.addWidget(btn_all)
-
-        btn_none = QPushButton("Hapus Semua")
-        btn_none.clicked.connect(self.peserta_checklist.deselect_all)
-        btn_bar.addWidget(btn_none)
-
-        layout.addLayout(btn_bar)
-
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.peserta_checklist)

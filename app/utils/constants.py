@@ -1,14 +1,12 @@
 PAGE_DASHBOARD = 0
 PAGE_PEGAWAI = 1
-PAGE_TEMPLATE = 2
-PAGE_GENERATE = 3
-PAGE_SURAT = 4
-PAGE_SETTINGS = 5
+PAGE_GENERATE = 2
+PAGE_SURAT = 3
+PAGE_SETTINGS = 4
 
 NAV_ITEMS = [
     {"label": "Dashboard", "icon": "fa.home", "page": PAGE_DASHBOARD},
     {"label": "Pegawai", "icon": "fa.users", "page": PAGE_PEGAWAI},
-    {"label": "Template", "icon": "fa.file.text", "page": PAGE_TEMPLATE},
     {"label": "Generate", "icon": "fa.magic", "page": PAGE_GENERATE},
     {"label": "Riwayat Surat", "icon": "fa.file.archive", "page": PAGE_SURAT},
     {"label": "Pengaturan", "icon": "fa.gear", "page": PAGE_SETTINGS},

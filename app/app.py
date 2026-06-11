@@ -43,14 +43,12 @@ class App(QApplication):
     def _setup_pages(self):
         from app.ui.pages.dashboard_page import DashboardPage
         from app.ui.pages.pegawai_page import PegawaiPage
-        from app.ui.pages.template_page import TemplatePage
         from app.ui.pages.generate_page import GeneratePage
         from app.ui.pages.surat_page import SuratPage
         from app.ui.pages.settings_page import SettingsPage
 
         self.window.add_page(DashboardPage())
         self.window.add_page(PegawaiPage())
-        self.window.add_page(TemplatePage())
         self.window.add_page(GeneratePage())
         self.window.add_page(SuratPage())
         self.window.add_page(SettingsPage())

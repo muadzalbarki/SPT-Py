@@ -5,7 +5,7 @@ from app.ui.components.stat_card import StatCard
 from app.ui.components.card import Card
 from app.ui.components.modern_table import ModernTable
 from app.ui.components.quick_action import QuickAction
-from app.database.repository import PegawaiRepo, TemplateRepo, SuratRepo
+from app.database.repository import PegawaiRepo, SuratRepo
 
 
 class DashboardPage(QWidget):
@@ -36,12 +36,10 @@ class DashboardPage(QWidget):
         cards_layout.setSpacing(16)
 
         self.stat_pegawai = StatCard("👥", "0", "Total Pegawai", "#b4befe")
-        self.stat_template = StatCard("📄", "0", "Template Tersedia", "#89b4fa")
         self.stat_surat = StatCard("📋", "0", "Riwayat Surat", "#a6e3a1")
         self.stat_hari_ini = StatCard("📅", "0", "Surat Hari Ini", "#f9e2af")
 
         cards_layout.addWidget(self.stat_pegawai)
-        cards_layout.addWidget(self.stat_template)
         cards_layout.addWidget(self.stat_surat)
         cards_layout.addWidget(self.stat_hari_ini)
         layout.addLayout(cards_layout)
@@ -56,7 +54,6 @@ class DashboardPage(QWidget):
         actions = [
             ("📝", "Generate Surat"),
             ("👤", "Tambah Pegawai"),
-            ("📤", "Upload Template"),
             ("📎", "Export PDF"),
         ]
         for icon, text in actions:
@@ -80,12 +77,10 @@ class DashboardPage(QWidget):
     def _load_data(self):
         try:
             pegawai_count = PegawaiRepo.count()
-            template_count = TemplateRepo.count()
             surat_count = SuratRepo.count()
             hari_ini = SuratRepo.count_today()
 
             self.stat_pegawai.update_value(str(pegawai_count))
-            self.stat_template.update_value(str(template_count))
             self.stat_surat.update_value(str(surat_count))
             self.stat_hari_ini.update_value(str(hari_ini))
 
@@ -101,9 +96,8 @@ class DashboardPage(QWidget):
             self.recent_table.populate(rows)
 
             self.stat_pegawai.animate_in(0)
-            self.stat_template.animate_in(100)
-            self.stat_surat.animate_in(200)
-            self.stat_hari_ini.animate_in(300)
+            self.stat_surat.animate_in(100)
+            self.stat_hari_ini.animate_in(200)
         except Exception:
             pass
 

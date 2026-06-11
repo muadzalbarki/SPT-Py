@@ -651,3 +651,75 @@ ROLLBACK v3.3:
     cp backups/v3.2/generate_page.py app/ui/pages/
     cp backups/v3.2/participant_checklist.py app/ui/components/
     # lalu hapus data/spt_dprd.db agar seed ulang
+
+
+v3.4 — HAPUS TEMPLATE + FIX RIWAYAT SURAT
+============================================
+Date: 2026-06-06
+
+1. HAPUS TOMBOL KOMISI DI LANGKAH 1 (STEP 0)
+------------------------------------------------
+Dihapus: Pilih Komisi A, Pilih Komisi B, Pilih Komisi C, Pilih Pimpinan,
+         dan Hapus Semua dari btn_bar di step 0. Tombol "Semua" dipindah
+         ke dalam ParticipantChecklist di samping "Hapus Semua".
+         btn_bar dihapus.
+Files:
+    app/ui/pages/generate_page.py
+    app/ui/components/participant_checklist.py
+
+2. HAPUS MENU TEMPLATE
+-------------------------
+Halaman Template tidak berguna karena hanya 1 template. Dihapus:
+  - template_page.py (DELETED)
+  - Entry Template dari NAV_ITEMS + PAGE_TEMPLATE constant
+  - Import + add_page di app.py
+  - "template" dari daftar page name di main_window.py
+  - Stat card Template + quick action Upload Template di dashboard
+Files:
+    app/utils/constants.py
+    app/app.py
+    app/ui/main_window.py
+    app/ui/pages/dashboard_page.py
+    app/ui/pages/template_page.py (DELETED)
+
+3. FIX RIWAYAT SURAT — detached session error
+------------------------------------------------
+Problem:  SuratRepo.get_all() menutup session setelah query, tapi
+          SuratPage._load_data() mengakses relasi lazy-loaded
+          (s.template.nama, s.peserta) di luar session → error
+          DetachedInstanceError tertelan oleh except Exception: pass.
+Fix:      - Tambah joinedload(Surat.template, Surat.peserta) di query
+            agar relasi di-load dalam session scope.
+          - Hubungkan btn_refresh.clicked ke _load_data.
+          - Ganti except Exception: pass → print error.
+Files:
+    app/database/repository.py
+    app/ui/pages/surat_page.py
+
+SUMMARY v3.4
+==============
+
+MODIFIED FILES:
+    app/database/repository.py            — +joinedload untuk template & peserta
+    app/ui/pages/surat_page.py            — +refresh connected, error logging
+    app/utils/constants.py                — hapus PAGE_TEMPLATE, renumber
+    app/app.py                            — hapus import & add_page TemplatePage
+    app/ui/main_window.py                 — hapus "template" dari page names
+    app/ui/pages/dashboard_page.py        — hapus stat template, upload action
+    app/ui/pages/generate_page.py         — hapus btn_bar + tombol komisi
+    app/ui/components/participant_checklist.py — +btn_select_all di count_bar
+    change.txt                            — +v3.4 entry
+
+DELETED FILES:
+    app/ui/pages/template_page.py
+
+
+4. HAPUS TOPBAR — search, notifikasi, avatar, admin label
+--------------------------------------------------------------
+Semua elemen di TopBar tidak fungsional: search bar (signal tidak
+terkoneksi), notifikasi (tanpa handler), avatar "AD", dan label
+"Admin DPRD" (statis). Seluruh TopBar dihapus.
+Files:
+    app/ui/components/topbar.py (DELETED)
+    app/ui/components/__init__.py   — hapus import TopBar
+    app/ui/main_window.py           — hapus topbar reference

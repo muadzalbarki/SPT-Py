@@ -1,5 +1,6 @@
 from typing import Optional, List
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from app.database.engine import get_session
 from app.database.models import Pegawai, TemplateDokumen, Surat, PesertaSurat, NomorCounter
 
@@ -168,7 +169,13 @@ class SuratRepo:
     def get_all(limit: int = 50) -> list[Surat]:
         session = get_session()
         try:
-            return session.query(Surat).order_by(Surat.created_at.desc()).limit(limit).all()
+            return (
+                session.query(Surat)
+                .options(joinedload(Surat.template), joinedload(Surat.peserta))
+                .order_by(Surat.created_at.desc())
+                .limit(limit)
+                .all()
+            )
         finally:
             session.close()
 

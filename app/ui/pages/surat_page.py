@@ -24,6 +24,7 @@ class SuratPage(QWidget):
 
         toolbar = QHBoxLayout()
         self.btn_refresh = ModernButton("🔄 Refresh", variant="ghost")
+        self.btn_refresh.clicked.connect(self._load_data)
         toolbar.addWidget(self.btn_refresh)
         toolbar.addStretch()
         self.btn_export_pdf = ModernButton("📎 Export PDF", variant="primary")
@@ -47,8 +48,8 @@ class SuratPage(QWidget):
                     "✓" if s.file_path else "-",
                 ])
             self.table.populate(rows)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[SuratPage] Gagal load data: {e}")
 
     def refresh(self):
         self._load_data()

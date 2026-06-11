@@ -7,7 +7,6 @@ from app.utils.constants import NAV_ITEMS
 from app.core.window_manager import WindowManager
 from app.core.animation_manager import AnimationManager
 from app.ui.components.sidebar import Sidebar
-from app.ui.components.topbar import TopBar
 from app.themes.theme_manager import ThemeManager
 
 
@@ -59,9 +58,6 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
 
-        self.topbar = TopBar()
-        right_layout.addWidget(self.topbar)
-
         self.pages = QStackedWidget()
         right_layout.addWidget(self.pages, 1)
 
@@ -82,9 +78,6 @@ class MainWindow(QMainWindow):
                 old.hide()
 
             self.pages.setCurrentIndex(index)
-            self.topbar.placeholder_for_page(
-                ["dashboard", "pegawai", "template", "generate", "surat", "settings"][index]
-            )
 
             current = self.pages.currentWidget()
             if hasattr(current, "refresh"):
@@ -99,7 +92,6 @@ class MainWindow(QMainWindow):
     def _apply_theme(self):
         stylesheet = self._theme.get_stylesheet()
         self.setStyleSheet(stylesheet)
-        self.topbar.setStyleSheet("")
         self.sidebar.setStyleSheet("")
 
     def _toggle_maximize(self):
