@@ -33,6 +33,9 @@ a = Analysis(
         'docxtpl',
         'qtawesome',
         'PySide6.QtWebEngineWidgets',
+        'win32com',
+        'win32com.client',
+        'win32com.client.gencache',
     ],
     excludes=[
         'tkinter',

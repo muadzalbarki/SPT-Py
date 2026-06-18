@@ -38,25 +38,38 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
 
         self._settings = AppSettings.instance()
+        screen = QApplication.primaryScreen()
+        avail = screen.availableGeometry() if screen else None
+
+        if avail:
+            def_w = max(int(avail.width() * 0.8), self.minimumWidth())
+            def_h = max(int(avail.height() * 0.85), self.minimumHeight())
+        else:
+            def_w = WINDOW_DEFAULT_WIDTH
+            def_h = WINDOW_DEFAULT_HEIGHT
+
         saved_geo = self._settings.get("window_geometry")
         saved_max = self._settings.get("window_maximized", False)
 
-        if saved_geo:
+        geometry_valid = False
+        if saved_geo and not saved_max:
             self.restoreGeometry(bytes.fromhex(saved_geo))
-        else:
-            self.resize(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT)
+            if avail:
+                center = self.frameGeometry().center()
+                if avail.contains(center):
+                    geometry_valid = True
+
+        if not geometry_valid and not saved_max:
+            self.resize(def_w, def_h)
+            if avail:
+                geo = self.frameGeometry()
+                geo.moveCenter(avail.center())
+                self.move(geo.topLeft())
 
         self._use_frameless = WindowManager.configure_window(self)
 
         if saved_max:
             self.showMaximized()
-
-        screen = QApplication.primaryScreen()
-        if screen and not saved_geo and not saved_max:
-            center = screen.availableGeometry().center()
-            geo = self.geometry()
-            geo.moveCenter(center)
-            self.move(geo.topLeft())
 
     def _setup_ui(self):
         self.central_container = QWidget()
@@ -98,16 +111,17 @@ class MainWindow(QMainWindow):
         wrapper_layout = QHBoxLayout(content_wrapper)
         wrapper_layout.setContentsMargins(0, 0, 0, 0)
 
-        spacer_left = QWidget()
-        spacer_left.setFixedWidth(0)
-        wrapper_layout.addWidget(spacer_left)
+        wrapper_layout.setContentsMargins(0, 0, 0, 0)
+
+        wrapper_layout.addStretch(1)
 
         self.pages = QStackedWidget()
+        self.pages.setObjectName("mainPages")
+        self.pages.setMinimumWidth(600)
+        self.pages.setMaximumWidth(1200)
         wrapper_layout.addWidget(self.pages, 1)
 
-        self.pages.setMinimumWidth(600)
-
-        wrapper_layout.addStretch()
+        wrapper_layout.addStretch(1)
 
         scroll.setWidget(content_wrapper)
         right_layout.addWidget(scroll, 1)
@@ -175,7 +189,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._settings:
-            geo = self.saveGeometry().toHex().decode()
-            self._settings.set("window_geometry", geo)
+            if not self.isMaximized():
+                geo = self.saveGeometry().toHex().decode()
+                self._settings.set("window_geometry", geo)
             self._settings.set("window_maximized", self.isMaximized())
         super().closeEvent(event)

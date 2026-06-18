@@ -57,7 +57,14 @@ class SuratPage(QWidget):
 
         if not self.pdf_service.is_available():
             self.btn_export_pdf.setEnabled(False)
-            self.btn_export_pdf.setToolTip("LibreOffice tidak terinstall")
+            parts = []
+            if not PdfService.is_word_available():
+                parts.append("Microsoft Word")
+            if not PdfService.is_libreoffice_available():
+                parts.append("LibreOffice")
+            self.btn_export_pdf.setToolTip(
+                f"{' & '.join(parts)} tidak terinstall — PDF tidak dapat di-export"
+            )
 
         toolbar.addWidget(self.btn_export_pdf)
 

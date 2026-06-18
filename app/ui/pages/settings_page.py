@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton,
-    QMessageBox,
+    QMessageBox, QButtonGroup, QRadioButton,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QDesktopServices
@@ -13,6 +13,7 @@ from app.themes.theme_manager import ThemeManager
 from app.services.pdf_service import PdfService
 from app.services.backup_service import BackupService
 from app.paths import get_logs_root, get_exports_root, get_backups_root
+from app.settings import AppSettings
 
 
 class SettingsPage(QWidget):
@@ -60,29 +61,58 @@ class SettingsPage(QWidget):
 
         layout.addWidget(display_card)
 
-        dependencies_card = SectionCard("Ketergantungan Sistem")
+        deps_card = SectionCard("Sistem Dependencies")
 
-        lo_row = QHBoxLayout()
-        lo_row.setSpacing(12)
-        lo_lbl = QLabel("Status")
-        lo_lbl.setFixedWidth(140)
-        lo_lbl.setStyleSheet("font-size: 13px; color: #64748B;")
-        lo_row.addWidget(lo_lbl)
-        self.lo_status = QLabel("Memeriksa...")
-        self.lo_status.setStyleSheet("font-size: 13px; font-weight: 500;")
-        lo_row.addWidget(self.lo_status)
-        lo_row.addStretch()
-        self.lo_download = ModernButton("Download LibreOffice", variant="outline")
-        self.lo_download.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://libreoffice.org/download"))
-        )
-        self.lo_download.setVisible(False)
-        lo_row.addWidget(self.lo_download)
-        lw = QWidget()
-        lw.setLayout(lo_row)
-        dependencies_card.add_widget(lw)
+        self._add_dep_row(deps_card, "Microsoft Word",
+                          "fa6s.file-word", "https://www.microsoft.com/en-us/microsoft-365/word")
+        self._add_dep_row(deps_card, "LibreOffice",
+                          "fa6s.file-pen", "https://libreoffice.org/download")
 
-        layout.addWidget(dependencies_card)
+        engine_section = QWidget()
+        engine_layout = QVBoxLayout(engine_section)
+        engine_layout.setContentsMargins(0, 8, 0, 0)
+        engine_layout.setSpacing(8)
+
+        engine_label = QLabel("PDF Engine")
+        engine_label.setStyleSheet("font-size: 13px; font-weight: 500;")
+        engine_layout.addWidget(engine_label)
+
+        self.engine_group = QButtonGroup(self)
+
+        radio_word = QRadioButton("Microsoft Word (Disarankan)")
+        radio_word.setObjectName("engineWord")
+        radio_word.setStyleSheet("font-size: 13px; spacing: 8px;")
+        self.engine_group.addButton(radio_word, 0)
+
+        radio_lo = QRadioButton("LibreOffice")
+        radio_lo.setObjectName("engineLO")
+        radio_lo.setStyleSheet("font-size: 13px; spacing: 8px;")
+        self.engine_group.addButton(radio_lo, 1)
+
+        engine_layout.addWidget(radio_word)
+        engine_layout.addWidget(radio_lo)
+
+        self.engine_group.buttonClicked.connect(self._on_engine_changed)
+
+        deps_card.add_widget(engine_section)
+
+        test_row = QHBoxLayout()
+        test_row.setSpacing(8)
+        self.btn_test = ModernButton("Test PDF Export", variant="primary")
+        self.btn_test.clicked.connect(self._test_export)
+        test_row.addWidget(self.btn_test)
+        test_row.addStretch()
+
+        tw = QWidget()
+        tw.setLayout(test_row)
+        deps_card.add_widget(tw)
+
+        self.test_result = QLabel("")
+        self.test_result.setWordWrap(True)
+        self.test_result.setStyleSheet("font-size: 12px; padding: 4px 0;")
+        deps_card.add_widget(self.test_result)
+
+        layout.addWidget(deps_card)
 
         storage_card = SectionCard("Penyimpanan")
 
@@ -179,25 +209,33 @@ class SettingsPage(QWidget):
 
         layout.addStretch(1)
 
-    def _build_dependency_row(self, card: SectionCard, name: str, check_fn):
+    def _add_dep_row(self, card: SectionCard, name: str, icon: str, download_url: str):
         row = QHBoxLayout()
         row.setSpacing(12)
+
+        icon_lbl = QLabel("")
+        icon_lbl.setPixmap(qta.icon(icon, color="#64748B").pixmap(18, 18))
+        icon_lbl.setFixedWidth(20)
+        row.addWidget(icon_lbl)
+
         lbl = QLabel(name)
         lbl.setFixedWidth(140)
         lbl.setStyleSheet("font-size: 13px; color: #64748B;")
         row.addWidget(lbl)
-        status = QLabel("✓ Available" if check_fn() else "✗ Not installed")
-        status.setStyleSheet(
-            f"font-size: 13px; font-weight: 500; color: {'#10B981' if check_fn() else '#EF4444'};"
-        )
-        row.addWidget(status)
+
+        status_lbl = QLabel("")
+        status_lbl.setObjectName(f"dep_{name.replace(' ', '_')}")
+        status_lbl.setStyleSheet("font-size: 13px; font-weight: 500;")
+        row.addWidget(status_lbl)
+
         row.addStretch()
-        if not check_fn():
-            download = ModernButton(f"Download {name}", variant="outline")
-            download.clicked.connect(
-                lambda: QDesktopServices.openUrl(QUrl("https://libreoffice.org/download"))
-            )
-            row.addWidget(download)
+
+        download_btn = ModernButton(f"Download {name.split()[0]}", variant="outline")
+        download_btn.setObjectName(f"dl_{name.replace(' ', '_')}")
+        download_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(download_url)))
+        download_btn.setVisible(False)
+        row.addWidget(download_btn)
+
         w = QWidget()
         w.setLayout(row)
         card.add_widget(w)
@@ -217,8 +255,44 @@ class SettingsPage(QWidget):
         w.setLayout(row)
         card.add_widget(w)
 
-    def _check_libreoffice(self) -> bool:
-        return PdfService.is_libreoffice_available()
+    def _update_dep_status(self, name: str, available: bool):
+        status_lbl = self.findChild(QLabel, f"dep_{name.replace(' ', '_')}")
+        dl_btn = self.findChild(ModernButton, f"dl_{name.replace(' ', '_')}")
+        if status_lbl:
+            if available:
+                status_lbl.setText("✓ Terdeteksi")
+                status_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #10B981;")
+            else:
+                status_lbl.setText("✗ Tidak terinstall")
+                status_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #EF4444;")
+        if dl_btn:
+            dl_btn.setVisible(not available)
+
+    def _on_engine_changed(self, button):
+        idx = self.engine_group.id(button)
+        engine_map = {0: "msword", 1: "libreoffice"}
+        AppSettings.instance().set("pdf_engine", engine_map[idx])
+        self.test_result.setText("")
+
+    def _test_export(self):
+        self.btn_test.setEnabled(False)
+        self.test_result.setText("Memproses...")
+        self.test_result.setStyleSheet("font-size: 12px; color: #64748B; padding: 4px 0;")
+        self.test_result.repaint()
+
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(50, self._run_test)
+
+    def _run_test(self):
+        svc = PdfService()
+        success, message = svc.test_export()
+        if success:
+            self.test_result.setText(f"✓ {message}")
+            self.test_result.setStyleSheet("font-size: 12px; font-weight: 500; color: #10B981; padding: 4px 0;")
+        else:
+            self.test_result.setText(f"✗ {message}")
+            self.test_result.setStyleSheet("font-size: 12px; font-weight: 500; color: #EF4444; padding: 4px 0;")
+        self.btn_test.setEnabled(True)
 
     def _do_backup(self):
         try:
@@ -236,15 +310,18 @@ class SettingsPage(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        lo_available = self._check_libreoffice()
-        if lo_available:
-            self.lo_status.setText("✓ Terinstall")
-            self.lo_status.setStyleSheet("font-size: 13px; font-weight: 500; color: #10B981;")
-            self.lo_download.setVisible(False)
-        else:
-            self.lo_status.setText("✗ Tidak terinstall")
-            self.lo_status.setStyleSheet("font-size: 13px; font-weight: 500; color: #EF4444;")
-            self.lo_download.setVisible(True)
+        PdfService.reset_cache()
+        self._update_dep_status("Microsoft Word", PdfService.is_word_available())
+        self._update_dep_status("LibreOffice", PdfService.is_libreoffice_available())
+
+        current_engine = AppSettings.instance().get("pdf_engine", "auto")
+        engine_map = {"auto": 0, "msword": 0, "libreoffice": 1}
+        idx = engine_map.get(current_engine, 0)
+        btn = self.engine_group.button(idx)
+        if btn:
+            btn.setChecked(True)
+
+        self.test_result.setText("")
 
     def _toggle_theme(self):
         ThemeManager.instance().toggle()

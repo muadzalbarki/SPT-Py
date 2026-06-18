@@ -11,6 +11,7 @@ DEFAULT_SETTINGS = {
     "window_maximized": False,
     "last_template_id": None,
     "libreoffice_path": None,
+    "pdf_engine": "auto",
 }
 
 
