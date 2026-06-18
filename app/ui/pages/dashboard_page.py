@@ -2,7 +2,7 @@ from datetime import datetime
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton,
-    QScrollArea,
+    QScrollArea, QSizePolicy,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
@@ -12,6 +12,9 @@ from app.ui.components.statistic_card import StatisticCard
 from app.ui.components.action_card import ActionCard
 from app.ui.components.modern_table import ModernTable
 from app.ui.components.section_card import SectionCard
+from app.ui.components.adaptive_grid import AdaptiveGrid
+from app.ui.components.empty_state import EmptyState
+from app.ui.utils.responsive_manager import ResponsiveManager
 from app.database.repository import PegawaiRepo, SuratRepo
 
 
@@ -24,16 +27,18 @@ class DashboardPage(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        self._update_layout()
         if not self._loaded:
             self._loaded = True
             QTimer.singleShot(50, self._load_data)
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 28, 32, 28)
-        layout.setSpacing(24)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
 
         header = QVBoxLayout()
+        header.setContentsMargins(32, 28, 32, 0)
         header.setSpacing(4)
 
         title = QLabel("Dashboard")
@@ -47,8 +52,10 @@ class DashboardPage(QWidget):
 
         layout.addLayout(header)
 
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(16)
+        self.stats_grid = AdaptiveGrid()
+        self.stats_grid.set_min_column_width(220)
+        self.stats_grid.set_max_columns(6)
+        self.stats_grid.set_spacing(16)
 
         self.stat_pegawai = StatisticCard("fa6s.users", "0", "Total Pegawai",
                                           trend="", accent_color="#D4AF37")
@@ -59,32 +66,42 @@ class DashboardPage(QWidget):
         self.stat_bulan_ini = StatisticCard("fa6s.chart-line", "0", "Surat Bulan Ini",
                                             trend="", accent_color="#8B5CF6")
 
-        cards_row.addWidget(self.stat_pegawai)
-        cards_row.addWidget(self.stat_surat)
-        cards_row.addWidget(self.stat_hari_ini)
-        cards_row.addWidget(self.stat_bulan_ini)
-        layout.addLayout(cards_row)
+        self.stats_grid.add_widget(self.stat_pegawai)
+        self.stats_grid.add_widget(self.stat_surat)
+        self.stats_grid.add_widget(self.stat_hari_ini)
+        self.stats_grid.add_widget(self.stat_bulan_ini)
 
-        middle = QHBoxLayout()
-        middle.setSpacing(16)
+        grid_container = QWidget()
+        grid_container.setContentsMargins(32, 0, 32, 0)
+        grid_layout = QVBoxLayout(grid_container)
+        grid_layout.setContentsMargins(0, 0, 0, 0)
+        grid_layout.addWidget(self.stats_grid)
+        layout.addWidget(grid_container)
+
+        self.middle_container = QWidget()
+        self.middle_container.setContentsMargins(32, 0, 32, 0)
+        self.middle_layout = QHBoxLayout(self.middle_container)
+        self.middle_layout.setContentsMargins(0, 0, 0, 0)
+        self.middle_layout.setSpacing(16)
 
         recent_section = SectionCard("Surat Terbaru")
         self.recent_table = ModernTable(
             ["Nomor Surat", "Tanggal", "Template", "Jumlah Peserta"],
         )
-        self.recent_table.setMaximumHeight(320)
+        self.recent_table.setSortingEnabled(True)
+        self.recent_table.verticalHeader().setDefaultSectionSize(44)
         recent_section.add_widget(self.recent_table)
-        middle.addWidget(recent_section, 1)
+        self.middle_layout.addWidget(recent_section, 2)
 
         quick_card = ActionCard("Aksi Cepat")
         quick_card.add_action("fa6s.file-pen", "Generate Surat")
         quick_card.add_action("fa6s.user-plus", "Tambah Pegawai")
         quick_card.add_action("fa6s.file-export", "Export PDF")
         quick_card.add_action("fa6s.rotate", "Refresh Data")
-        quick_card.setFixedWidth(280)
-        middle.addWidget(quick_card)
+        quick_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.middle_layout.addWidget(quick_card, 1)
 
-        layout.addLayout(middle, 1)
+        layout.addWidget(self.middle_container, 1)
 
     def _load_data(self):
         try:
@@ -114,3 +131,14 @@ class DashboardPage(QWidget):
 
     def refresh(self):
         self._load_data()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._update_layout)
+
+    def _update_layout(self):
+        width = self.middle_container.width()
+        if ResponsiveManager.should_stack(width, 1200):
+            self.middle_layout.setDirection(QHBoxLayout.Direction.TopToBottom)
+        else:
+            self.middle_layout.setDirection(QHBoxLayout.Direction.LeftToRight)

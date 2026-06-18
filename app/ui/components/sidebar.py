@@ -15,10 +15,12 @@ class Sidebar(QWidget):
         self._nav_items = nav_items
         self._active_index = 0
         self._nav_widgets = []
+        self._collapsed_width = 72
+        self._expanded_width = 220
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setFixedWidth(240)
+        self.setFixedWidth(self._expanded_width)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)

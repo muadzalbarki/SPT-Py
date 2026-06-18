@@ -1093,3 +1093,41 @@ MODIFIED FILES:
 
 ROLLBACK v4.1:
     git checkout -- app/ui/pages/ app/themes/ app/utils/
+
+v4.2 — Responsive Layout Refactor (2026-06-18)
+===============================================
+1. NEW COMPONENTS
+------------------
+    app/ui/utils/responsive_manager.py   — Breakpoints + ResponsiveManager utility
+    app/ui/components/adaptive_grid.py   — Auto-column grid widget (<800px=2, 1200px=4, 1800px=6)
+    app/ui/components/empty_state.py     — Empty state with icon, text, and action button
+
+2. P1 — DASHBOARD FLUID LAYOUT
+-------------------------------
+    app/ui/pages/dashboard_page.py       — Rewrite: AdaptiveGrid for stats, fluid middle section,
+                                           stack <1200px / side-by-side >=1200px
+    app/ui/components/statistic_card.py  — setSizePolicy(Expanding, Expanding)
+
+3. P1 — TABLE IMPROVEMENTS
+---------------------------
+    app/ui/components/modern_table.py    — All columns stretch, sorting enabled, alternating rows
+
+4. P2 — PEGAWAI RESPONSIVE
+----------------------------
+    app/ui/pages/pegawai_page.py         — AdaptiveGrid for stat boxes, remove fixedHeight(80)
+
+5. P2 — GENERATE PAGE
+----------------------
+    app/ui/pages/generate_page.py        — setFixedWidth(800) → maxWidth(1100) + Expanding
+
+6. P3 — SIDEBAR
+----------------
+    app/ui/components/sidebar.py         — 240px → 220px + _collapsed_width=72 (future collapse)
+
+7. P3 — TOPBAR
+---------------
+    app/ui/components/topbar.py          — Search fixedWidth(200) → minWidth(180) + maxWidth(320)
+
+8. BUILD
+---------
+    .gitignore                           — data/, backups/ added

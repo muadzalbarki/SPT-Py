@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox,
-    QFileDialog, QFrame,
+    QFileDialog, QFrame, QSizePolicy,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
@@ -10,6 +10,8 @@ from app.ui.components.search_table import SearchTable
 from app.ui.components.section_card import SectionCard
 from app.ui.components.modern_button import ModernButton
 from app.ui.components.feedback import SuccessMessage, ErrorMessage
+from app.ui.components.adaptive_grid import AdaptiveGrid
+from app.ui.components.empty_state import EmptyState
 from app.ui.dialogs.pegawai_dialog import PegawaiDialog
 from app.database.repository import PegawaiRepo
 from app.database.models import Pegawai
@@ -42,8 +44,11 @@ class PegawaiPage(QWidget):
 
         layout.addLayout(header)
 
-        stats_row = QHBoxLayout()
-        stats_row.setSpacing(12)
+        self.stats_grid = AdaptiveGrid()
+        self.stats_grid.set_min_column_width(200)
+        self.stats_grid.set_max_columns(6)
+        self.stats_grid.set_spacing(12)
+        self.stats_grid.setContentsMargins(0, 0, 0, 0)
 
         self.stat_total = self._make_stat_box("Total Pegawai", "0", "fa6s.users", "#D4AF37")
         self.stat_pimpinan = self._make_stat_box("Pimpinan", "0", "fa6s.crown", "#F59E0B")
@@ -51,12 +56,12 @@ class PegawaiPage(QWidget):
         self.stat_b = self._make_stat_box("Komisi B", "0", "fa6s.chart-pie", "#10B981")
         self.stat_c = self._make_stat_box("Komisi C", "0", "fa6s.gavel", "#8B5CF6")
 
-        stats_row.addWidget(self.stat_total)
-        stats_row.addWidget(self.stat_pimpinan)
-        stats_row.addWidget(self.stat_a)
-        stats_row.addWidget(self.stat_b)
-        stats_row.addWidget(self.stat_c)
-        layout.addLayout(stats_row)
+        self.stats_grid.add_widget(self.stat_total)
+        self.stats_grid.add_widget(self.stat_pimpinan)
+        self.stats_grid.add_widget(self.stat_a)
+        self.stats_grid.add_widget(self.stat_b)
+        self.stats_grid.add_widget(self.stat_c)
+        layout.addWidget(self.stats_grid)
 
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
@@ -89,7 +94,7 @@ class PegawaiPage(QWidget):
     def _make_stat_box(self, label: str, value: str, icon: str, color: str) -> QFrame:
         box = QFrame()
         box.setObjectName("cardFrame")
-        box.setFixedHeight(80)
+        box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         bl = QHBoxLayout(box)
         bl.setContentsMargins(16, 12, 16, 12)
         bl.setSpacing(12)

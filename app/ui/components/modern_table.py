@@ -45,6 +45,7 @@ class ModernTable(QTableWidget):
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.setSortingEnabled(True)
 
         header = self.horizontalHeader()
         if self._show_checkbox:
@@ -57,16 +58,13 @@ class ModernTable(QTableWidget):
             if self._stretch_last and i == len(self._headers) - 1:
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
             else:
-                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
-                header.resizeSection(i, 120)
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
 
         header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.verticalHeader().setDefaultSectionSize(44)
 
         header.setSectionsClickable(True)
         header.sectionClicked.connect(self._on_header_clicked)
-
-        self.setSortingEnabled(False)
 
     def populate(self, rows: list[list[str]]):
         self.setSortingEnabled(False)

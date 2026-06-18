@@ -47,7 +47,8 @@ class TopBar(QWidget):
         self.search_input = QLineEdit()
         self.search_input.setObjectName("topSearch")
         self.search_input.setPlaceholderText("Cari...")
-        self.search_input.setFixedWidth(200)
+        self.search_input.setMinimumWidth(180)
+        self.search_input.setMaximumWidth(320)
         self.search_input.textChanged.connect(self.search_changed.emit)
         search_layout.addWidget(self.search_input)
 

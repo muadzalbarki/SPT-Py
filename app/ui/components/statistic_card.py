@@ -1,6 +1,5 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel
-from PySide6.QtCore import Qt, QPropertyAnimation, Property, QEasingCurve
-from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
+from PySide6.QtCore import Qt
 import qtawesome as qta
 
 
@@ -11,6 +10,7 @@ class StatisticCard(QFrame):
         super().__init__(parent)
         self.setObjectName("statCard")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._value = value
         self._display_value = value
         self._accent = accent_color

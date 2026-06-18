@@ -53,7 +53,8 @@ class GeneratePage(QWidget):
         inner_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         form_width = QWidget()
-        form_width.setFixedWidth(800)
+        form_width.setMaximumWidth(1100)
+        form_width.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         form_layout = QVBoxLayout(form_width)
         form_layout.setContentsMargins(0, 0, 0, 0)
         form_layout.setSpacing(24)
