@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import os
 from pathlib import Path
 from typing import Optional, Callable
@@ -9,8 +10,15 @@ class PdfService(QObject):
     conversion_finished = Signal(str)
     conversion_error = Signal(str)
 
+    _soffice_name = "soffice.exe" if sys.platform == "win32" else "soffice"
+
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._available = None
+
+    @staticmethod
+    def _get_soffice_cmd(*args: str) -> list[str]:
+        return [PdfService._soffice_name, *args]
 
     def convert_to_pdf(self, docx_path: str, output_dir: Optional[str] = None) -> Optional[str]:
         docx_path = str(Path(docx_path).resolve())
@@ -21,7 +29,7 @@ class PdfService(QObject):
 
         try:
             result = subprocess.run(
-                ["soffice", "--headless", "--convert-to", "pdf", "--outdir", output_dir, docx_path],
+                self._get_soffice_cmd("--headless", "--convert-to", "pdf", "--outdir", output_dir, docx_path),
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -45,11 +53,16 @@ class PdfService(QObject):
             self.conversion_error.emit(str(e))
             return None
 
+    def is_available(self) -> bool:
+        if self._available is None:
+            self._available = self.is_libreoffice_available()
+        return self._available
+
     @staticmethod
     def is_libreoffice_available() -> bool:
         try:
             result = subprocess.run(
-                ["soffice", "--version"],
+                PdfService._get_soffice_cmd("--version"),
                 capture_output=True,
                 text=True,
                 timeout=10,

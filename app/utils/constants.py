@@ -5,11 +5,11 @@ PAGE_SURAT = 3
 PAGE_SETTINGS = 4
 
 NAV_ITEMS = [
-    {"label": "Dashboard", "icon": "fa.home", "page": PAGE_DASHBOARD},
-    {"label": "Pegawai", "icon": "fa.users", "page": PAGE_PEGAWAI},
-    {"label": "Generate", "icon": "fa.magic", "page": PAGE_GENERATE},
-    {"label": "Riwayat Surat", "icon": "fa.file.archive", "page": PAGE_SURAT},
-    {"label": "Pengaturan", "icon": "fa.gear", "page": PAGE_SETTINGS},
+    {"label": "Dashboard", "icon": "fa6s.gauge-high", "page": PAGE_DASHBOARD},
+    {"label": "Pegawai", "icon": "fa6s.users", "page": PAGE_PEGAWAI},
+    {"label": "Generate", "icon": "fa6s.file-pen", "page": PAGE_GENERATE},
+    {"label": "Riwayat Surat", "icon": "fa6s.folder-open", "page": PAGE_SURAT},
+    {"label": "Pengaturan", "icon": "fa6s.gear", "page": PAGE_SETTINGS},
 ]
 
 BULAN_ROMAWI = {

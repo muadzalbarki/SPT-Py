@@ -31,7 +31,25 @@ def get_ketua_komisi(komisi: str) -> Optional[dict]:
     return None
 
 
-def format_rincian_jumlah(pegawai_list: list[Any]) -> str:
+def get_ketua_dprd() -> Optional[str]:
+    pegawai_list = PegawaiRepo.get_all()
+    for p in pegawai_list:
+        if p.jabatan and p.jabatan.strip() == "Ketua DPRD":
+            return p.nama
+    return None
+
+
+def format_pendamping_block(pendamping_list: list[dict], start_index: int = 1) -> str:
+    lines = []
+    for i, pd in enumerate(pendamping_list, start_index):
+        nama = pd.get("nama", "").strip()
+        jabatan = pd.get("jabatan", "").strip()
+        if nama:
+            lines.append(f"{i}.{nama} — {jabatan}" if jabatan else f"{i}.{nama}")
+    return "\n".join(lines)
+
+
+def format_rincian_jumlah(pegawai_list: list[Any], pendamping_list: list[dict] = None) -> str:
     _pos_rank = {"Ketua": 0, "Wakil": 1, "Sekretaris": 2}
     def sort_key(jabatan):
         return (_pos_rank.get(jabatan.split()[0] if jabatan else "", 3), jabatan)
@@ -40,7 +58,14 @@ def format_rincian_jumlah(pegawai_list: list[Any]) -> str:
         j = p.jabatan.strip() if p.jabatan else "Anggota"
         counts[j] = counts.get(j, 0) + 1
     sorted_jabatan = sorted(counts.keys(), key=sort_key)
-    return ", ".join(f"{counts[j]} {j}" for j in sorted_jabatan)
+    result = ", ".join(f"{counts[j]} {j}" for j in sorted_jabatan)
+    if pendamping_list:
+        count = len(pendamping_list)
+        if result:
+            result += f", {count} Pendamping"
+        else:
+            result = f"{count} Pendamping"
+    return result
 
 
 def build_participant_context(pegawai_list: list[Any]) -> dict:

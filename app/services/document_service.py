@@ -7,8 +7,8 @@ from app.database.models import Surat, PesertaSurat
 from app.services.template_engine import TemplateEngine
 from app.services.nomor_surat_service import NomorSuratService
 from app.services.pdf_service import PdfService
-from app.services.participant_formatter import build_participant_context, get_ketua_komisi
-from app.config import EXPORTS_DIR
+from app.services.participant_formatter import build_participant_context, get_ketua_komisi, get_ketua_dprd, format_pendamping_block
+from app.paths import get_exports_root
 
 
 class DocumentService:
@@ -35,8 +35,6 @@ class DocumentService:
             if on_progress:
                 on_progress("Mengenerate nomor surat...")
 
-            nomor_surat = NomorSuratService.generate(kode_surat)
-
             if on_progress:
                 on_progress("Memproses data peserta...")
 
@@ -47,7 +45,10 @@ class DocumentService:
                     pegawai_list.append(p)
 
             full_context = dict(context)
-            full_context["nomor_surat"] = nomor_surat
+
+            nomor_surat_db = full_context.get("nomor_surat", "").strip()
+            if not nomor_surat_db:
+                nomor_surat_db = NomorSuratService.generate(kode_surat)
 
             tanggal = datetime.now()
             from app.utils.helpers import indonesian_date
@@ -65,11 +66,24 @@ class DocumentService:
                     else f"Ketua Komisi {k} (belum ditentukan)"
                 )
 
+            ketua_dprd = get_ketua_dprd()
+            full_context["ketuadprd"] = (
+                ketua_dprd if ketua_dprd
+                else "Ketua DPRD (belum ditentukan)"
+            )
+
+            pendamping_list = full_context.pop("pendamping_list", [])
+            if pendamping_list:
+                jumlah = int(full_context.get("jumlah", 0))
+                full_context["pendamping_block"] = format_pendamping_block(
+                    pendamping_list, start_index=jumlah + 1
+                )
+
             if on_progress:
                 on_progress("Mengganti placeholder...")
 
-            output_name = f"{nomor_surat.replace('/', '_')}.docx"
-            output_path = str(EXPORTS_DIR / output_name)
+            output_name = f"{nomor_surat_db.replace('/', '_')}.docx"
+            output_path = str(get_exports_root() / output_name)
 
             engine = TemplateEngine(template.file_path)
             result_path = engine.generate(output_path, full_context)
@@ -78,7 +92,7 @@ class DocumentService:
                 on_progress("Menyimpan ke database...")
 
             surat_data = {
-                "nomor_surat": nomor_surat,
+                "nomor_surat": nomor_surat_db,
                 "kode_surat": kode_surat,
                 "tanggal": datetime.now(),
                 "template_id": template.id,

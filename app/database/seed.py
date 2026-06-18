@@ -86,7 +86,8 @@ def _extract_placeholders_balanced(text: str) -> list[str]:
 
 
 def _register_template(session):
-    src = Path("/home/mikoto/Downloads/SPT-py/SPT Setwan.docx")
+    from app.config import ROOT_DIR
+    src = ROOT_DIR / "SPT Setwan.docx"
     if not src.exists():
         return
 

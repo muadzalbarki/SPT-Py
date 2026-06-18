@@ -8,6 +8,10 @@ exports/
 *.egg-info/
 dist/
 build/
+installer/*.exe
+installer/icon.ico
+*.log
+*.db-journal
 .DS_Store
 Thumbs.db
 *.swp

@@ -1,7 +1,9 @@
-import os
+import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+from app.paths import get_app_root, get_exports_root
+
+ROOT_DIR = get_app_root()
 APP_DIR = ROOT_DIR / "app"
 ASSETS_DIR = ROOT_DIR / "assets"
 FONTS_DIR = ASSETS_DIR / "fonts" / "Inter"
@@ -9,17 +11,13 @@ ICONS_DIR = ASSETS_DIR / "icons"
 PDFJS_DIR = ASSETS_DIR / "pdfjs"
 LOGO_PATH = ASSETS_DIR / "logo.png"
 TEMPLATES_DIR = ROOT_DIR / "templates"
-EXPORTS_DIR = ROOT_DIR / "exports"
-DATABASE_PATH = ROOT_DIR / "data" / "spt_dprd.db"
-
-EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-(ROOT_DIR / "data").mkdir(parents=True, exist_ok=True)
-
 
 APP_NAME = "SPT - DPRD"
 APP_SUBTITLE = "Sekretariat DPRD Kota Salatiga"
 APP_VERSION = "1.0.0"
+APP_AUTHOR = "Mu'adz Al-Barki"
 APP_ORG = "DPRD Salatiga"
+APP_COPYRIGHT = f"Copyright (c) 2026 {APP_AUTHOR}"
 
 FONT_FAMILY = "Inter"
 FONT_FALLBACK = "'Inter', 'Segoe UI', 'Noto Sans', 'Arial', sans-serif"

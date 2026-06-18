@@ -1,10 +1,17 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QPushButton
+from datetime import datetime
+
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton,
+    QScrollArea,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
-from app.ui.components.stat_card import StatCard
-from app.ui.components.card import Card
+import qtawesome as qta
+
+from app.ui.components.statistic_card import StatisticCard
+from app.ui.components.action_card import ActionCard
 from app.ui.components.modern_table import ModernTable
-from app.ui.components.quick_action import QuickAction
+from app.ui.components.section_card import SectionCard
 from app.database.repository import PegawaiRepo, SuratRepo
 
 
@@ -23,66 +30,73 @@ class DashboardPage(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(20)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(24)
 
-        # Header
-        header = QLabel("Dashboard")
-        header.setFont(QFont("Inter", 30, QFont.Weight.Bold))
-        layout.addWidget(header)
+        header = QVBoxLayout()
+        header.setSpacing(4)
 
-        # Stat Cards Grid
-        cards_layout = QHBoxLayout()
-        cards_layout.setSpacing(16)
+        title = QLabel("Dashboard")
+        title.setObjectName("heading")
+        title.setStyleSheet("font-size: 30px; font-weight: 700;")
+        header.addWidget(title)
 
-        self.stat_pegawai = StatCard("👥", "0", "Total Pegawai", "#b4befe")
-        self.stat_surat = StatCard("📋", "0", "Riwayat Surat", "#a6e3a1")
-        self.stat_hari_ini = StatCard("📅", "0", "Surat Hari Ini", "#f9e2af")
+        subtitle = QLabel("Overview Executive — Sistem Penunjang Perjalanan Dinas")
+        subtitle.setObjectName("subheading")
+        header.addWidget(subtitle)
 
-        cards_layout.addWidget(self.stat_pegawai)
-        cards_layout.addWidget(self.stat_surat)
-        cards_layout.addWidget(self.stat_hari_ini)
-        layout.addLayout(cards_layout)
+        layout.addLayout(header)
 
-        # Quick Actions + Recent Surat
-        middle_layout = QHBoxLayout()
-        middle_layout.setSpacing(16)
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(16)
 
-        # Quick Actions
-        quick_card = Card("Aksi Cepat")
+        self.stat_pegawai = StatisticCard("fa6s.users", "0", "Total Pegawai",
+                                          trend="", accent_color="#D4AF37")
+        self.stat_surat = StatisticCard("fa6s.file-lines", "0", "Total Surat",
+                                        trend="", accent_color="#3B82F6")
+        self.stat_hari_ini = StatisticCard("fa6s.calendar-day", "0", "Surat Hari Ini",
+                                           trend="", accent_color="#10B981")
+        self.stat_bulan_ini = StatisticCard("fa6s.chart-line", "0", "Surat Bulan Ini",
+                                            trend="", accent_color="#8B5CF6")
+
+        cards_row.addWidget(self.stat_pegawai)
+        cards_row.addWidget(self.stat_surat)
+        cards_row.addWidget(self.stat_hari_ini)
+        cards_row.addWidget(self.stat_bulan_ini)
+        layout.addLayout(cards_row)
+
+        middle = QHBoxLayout()
+        middle.setSpacing(16)
+
+        recent_section = SectionCard("Surat Terbaru")
+        self.recent_table = ModernTable(
+            ["Nomor Surat", "Tanggal", "Template", "Jumlah Peserta"],
+        )
+        self.recent_table.setMaximumHeight(320)
+        recent_section.add_widget(self.recent_table)
+        middle.addWidget(recent_section, 1)
+
+        quick_card = ActionCard("Aksi Cepat")
+        quick_card.add_action("fa6s.file-pen", "Generate Surat")
+        quick_card.add_action("fa6s.user-plus", "Tambah Pegawai")
+        quick_card.add_action("fa6s.file-export", "Export PDF")
+        quick_card.add_action("fa6s.rotate", "Refresh Data")
         quick_card.setFixedWidth(280)
-        actions = [
-            ("📝", "Generate Surat"),
-            ("👤", "Tambah Pegawai"),
-            ("📎", "Export PDF"),
-        ]
-        for icon, text in actions:
-            btn = QPushButton(f"{icon}  {text}")
-            btn.setObjectName("ghostBtn")
-            btn.setFont(QFont("Inter", 13, QFont.Weight.Medium))
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setMinimumHeight(44)
-            quick_card.add_widget(btn)
-        middle_layout.addWidget(quick_card)
+        middle.addWidget(quick_card)
 
-        # Recent Surat Table
-        recent_card = Card("Surat Terbaru")
-        self.recent_table = ModernTable(["No Surat", "Tanggal", "Template", "Peserta"])
-        self.recent_table.setMaximumHeight(300)
-        recent_card.add_widget(self.recent_table)
-        middle_layout.addWidget(recent_card, 1)
-
-        layout.addLayout(middle_layout, 1)
+        layout.addLayout(middle, 1)
 
     def _load_data(self):
         try:
             pegawai_count = PegawaiRepo.count()
             surat_count = SuratRepo.count()
             hari_ini = SuratRepo.count_today()
+            bulan_ini = SuratRepo.count_this_month()
 
             self.stat_pegawai.update_value(str(pegawai_count))
             self.stat_surat.update_value(str(surat_count))
             self.stat_hari_ini.update_value(str(hari_ini))
+            self.stat_bulan_ini.update_value(str(bulan_ini))
 
             surat_list = SuratRepo.get_all(limit=10)
             rows = []
@@ -95,11 +109,8 @@ class DashboardPage(QWidget):
                 ])
             self.recent_table.populate(rows)
 
-            self.stat_pegawai.animate_in(0)
-            self.stat_surat.animate_in(100)
-            self.stat_hari_ini.animate_in(200)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Dashboard] Load error: {e}")
 
     def refresh(self):
         self._load_data()

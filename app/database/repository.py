@@ -244,6 +244,16 @@ class SuratRepo:
         finally:
             session.close()
 
+    @staticmethod
+    def count_this_month() -> int:
+        from datetime import datetime
+        session = get_session()
+        try:
+            month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            return session.query(Surat).filter(Surat.created_at >= month_start).count()
+        finally:
+            session.close()
+
 
 class PesertaSuratRepo:
     @staticmethod
