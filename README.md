@@ -2,20 +2,21 @@
 
 **Sistem Otomatisasi Surat Pemerintahan**
 
-Aplikasi desktop modern untuk pembuatan Surat Tugas (SPT), Surat Permohonan, Surat Kunjungan Kerja, dan dokumen pemerintahan lainnya di lingkungan Sekretariat DPRD.
+Aplikasi desktop modern berbasis PySide6 untuk pembuatan Surat Tugas (SPT) dan dokumen pemerintahan di lingkungan Sekretariat DPRD Kota Salatiga.
 
 ---
 
 ## Fitur
 
-- 📄 **Template Engine** — Upload template .docx, auto-detect placeholder, replace otomatis
+- 🚀 **Wizard Generate 4 Langkah** — Pilih peserta → Surat Tugas → Detail Kunjungan → Signature & Generate
 - 👥 **Database Pegawai** — CRUD, import/export Excel, 25 anggota DPRD siap pakai
-- ✅ **Checklist Peserta** — Pilih peserta, auto numbering, auto generate rincian
-- 🚀 **Generate Satu Klik** — Semua surat tergenerate, semua placeholder terganti
-- 📎 **Export PDF** — LibreOffice headless converter, preview QWebEngineView
-- 🔢 **Auto Nomor Surat** — Format `094/{kode}/{bulan_romawi}/{tahun}`
-- 🌓 **Dark/Light Theme** — Catppuccin Mocha & Latte, toggle realtime
-- ✨ **Animasi Halus** — Fade-in, hover effect, slide transition
+- ✅ **Checklist Peserta** — Pilih per komisi, collapsible section, search filter
+- 📄 **Template Engine** — Placeholder `{ }` replacement otomatis, 23 placeholders
+- 📎 **Export PDF** — LibreOffice headless converter
+- 👤 **Pendamping** — Input nama + jabatan, daftar dinamis, nomor nyambung
+- 🌙 **Dark Mode** — Government Navy + Gold theme via ColorTokens
+- 🎨 **Ikon Material Design** — qtawesome (mdi.* prefix)
+- 🔤 **Font Inter** — Modern sans-serif, licensed
 
 ---
 
@@ -25,11 +26,11 @@ Aplikasi desktop modern untuk pembuatan Surat Tugas (SPT), Surat Permohonan, Sur
 |---|---|
 | UI Framework | PySide6 (Qt for Python) |
 | Database | SQLite + SQLAlchemy ORM |
-| Template | python-docx + XML manipulation |
+| Template | python-docx + lxml XML manipulation |
 | PDF | LibreOffice headless |
-| Font | Inter (bundled) |
-| Theme | Catppuccin Mocha / Latte |
-| Build | PyInstaller |
+| Ikon | qtawesome (Material Design Icons) |
+| Font | Inter (sans-serif) |
+| Theme | Government Navy + Gold / Dark Only |
 
 ---
 
@@ -38,15 +39,13 @@ Aplikasi desktop modern untuk pembuatan Surat Tugas (SPT), Surat Permohonan, Sur
 ### 1. Clone / Extract
 
 ```bash
-cd SPT-py
+cd SPT-Py
 ```
 
 ### 2. Virtual Environment
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# atau
+python -m venv venv
 venv\Scripts\activate     # Windows
 ```
 
@@ -64,72 +63,102 @@ python main.py
 
 ---
 
-## Build EXE (Windows)
-
-### Prasyarat
-
-- Install LibreOffice (untuk konversi PDF)
-- Install Python 3.12+
-
-### Build
-
-```bash
-pip install pyinstaller
-pyinstaller build.spec
-```
-
-EXE akan berada di `dist/SPT-DPRD/`.
-
-**Atau build one-file:**
-
-```bash
-pyinstaller --windowed --onefile --name "SPT-DPRD" ^
-  --add-data "assets;assets" --add-data "templates;templates" ^
-  --hidden-import sqlalchemy --hidden-import lxml ^
-  --icon assets/logo.png main.py
-```
-
----
-
 ## Struktur Proyek
 
 ```
-SPT-py/
+SPT-Py/
+├── main.py                     # Entry point aplikasi
 ├── app/
-│   ├── ui/               # UI pages + components
-│   ├── services/         # Business logic
-│   ├── database/         # SQLAlchemy models + repository
-│   ├── themes/           # Catppuccin QSS themes
-│   ├── animations/       # Fade, hover, slide effects
-│   └── utils/            # Helpers, constants, font loader
-├── assets/
-│   ├── fonts/Inter/      # Bundled Inter font
-│   ├── pdfjs/            # Bundled PDF.js
-│   └── logo.png          # DPRD logo
-├── templates/            # Uploaded .docx templates
-├── exports/              # Generated documents
-├── data/                 # SQLite database
-├── main.py               # Entry point
-└── requirements.txt
+│   ├── app.py                  # App class (init DB, seed, window)
+│   ├── config.py               # Konfigurasi path & constants
+│   ├── core/
+│   │   └── animation_manager.py # Fade-in/out animations
+│   ├── database/
+│   │   ├── engine.py           # SQLAlchemy engine + session
+│   │   ├── models.py           # ORM models
+│   │   ├── repository.py       # Data access layer (CRUD)
+│   │   └── seed.py             # Seeder data awal + register template
+│   ├── services/
+│   │   ├── document_service.py # Generate surat workflow
+│   │   ├── template_engine.py  # Docx placeholder replacement
+│   │   ├── participant_formatter.py # Format peserta/pendamping
+│   │   ├── nomor_surat_service.py   # Auto-generate nomor surat
+│   │   ├── pdf_service.py      # Export PDF via LibreOffice
+│   │   └── excel_service.py    # Import/export Excel
+│   ├── themes/
+│   │   ├── __init__.py         # Export ThemeManager
+│   │   ├── tokens.py           # ColorTokens dataclass + token sets
+│   │   └── theme_manager.py    # Singleton QSS generator
+│   ├── ui/
+│   │   ├── main_window.py      # MainWindow (sidebar + topbar + stack)
+│   │   ├── components/         # Reusable widgets
+│   │   │   ├── sidebar.py, topbar.py, card.py, statistic_card.py
+│   │   │   ├── modern_button.py, modern_table.py, search_bar.py
+│   │   │   ├── notification_btn.py, collapsible_section.py
+│   │   │   └── participant_checklist.py
+│   │   ├── pages/              # Halaman aplikasi
+│   │   │   ├── dashboard_page.py, pegawai_page.py
+│   │   │   ├── generate_page.py, surat_page.py
+│   │   │   └── settings_page.py
+│   │   └── dialogs/
+│   │       └── pegawai_dialog.py
+│   └── utils/
+│       ├── constants.py        # NAV_ITEMS, KOMISI_LIST, dll
+│       └── helpers.py          # indonesian_date, dll
+├── templates/
+│   └── SPT Setwan.docx         # Template surat (23 placeholders)
+├── exports/                    # Output generate surat (.docx)
+├── backups/                    # Backup per versi
+│   ├── v2.2/, v3.0/, v3.2/, v3.7/
+├── main.py
+├── requirements.txt
+├── change.txt
+├── alur.txt
+└── README.md
 ```
 
 ---
 
 ## Penggunaan Cepat
 
-1. **Buka aplikasi** → Dashboard menampilkan statistik
-2. **Upload template** → Tab Template, upload file .docx
-3. **Generate surat** → Tab Generate, isi form, checklist peserta, klik Generate
-4. **Export PDF** → Tab Riwayat Surat, pilih surat, klik Export PDF
+1. **Buka aplikasi** — Dashboard menampilkan statistik Total Pegawai & Riwayat Surat
+2. **Generate surat** → Tab Generate, ikuti wizard 4 langkah:
+   - Pilih peserta via checklist per komisi
+   - Isi form Surat Tugas (nomor, tanggal, dasar, untuk)
+   - Isi Detail Kunjungan (tujuan, jadwal, pendamping)
+   - Preview & klik Generate
+3. **Export PDF** → Tab Riwayat Surat, pilih surat, klik Export PDF
 
 ---
 
 ## Template Placeholder
 
-Template .docx menggunakan placeholder `{nama_variable}`. 
-Contoh: `{nomor_surat}`, `{nama}`, `{nip}`, `{jabatan}`, `{komisi}`.
+Template `SPT Setwan.docx` menggunakan placeholder `{nama_variable}`.
+23 placeholders terdeteksi otomatis:
 
-Template akan auto-detect semua placeholder saat diupload.
+```
+{nama_ketua_a}       {hari_tanggal_kepergian_dari_kapan_sampai_kapan}
+{nama_ketua_b}       {daftar_peserta_block}
+{nama_ketua_c}       {peserta_block}
+{komisi}             {pendamping_block}
+{nomor_surat}        {rincian_jumlah}
+{nomor_surat_spt}    {tanggalrapat}
+{tanggal}            {kabupaten/kota}
+{dasar}              {provinsi}
+{untuk}              {materi}
+{hari}               {tentang}
+{tanggal}            {ketuadprd}
+{pukul}              {jumlah}
+                      {tanggalsuratdibuat}
+```
+
+---
+
+## Template .docx
+
+Template SPT Setwan.docx sudah disertakan di `templates/`. Untuk menggunakan template
+kustom, salin file .docx ke folder `templates/` dan jalankan ulang aplikasi (seed
+akan mendaftarkannya).
 
 ---
 
