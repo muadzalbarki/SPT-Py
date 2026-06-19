@@ -1,12 +1,15 @@
 from PySide6.QtCore import QPropertyAnimation, QEasingCurve
 from PySide6.QtWidgets import QPushButton
 from app.core.animation_manager import AnimationManager
+import qtawesome as qta
 
 
 class NotificationButton(QPushButton):
     def __init__(self, badge_count: int = 0, parent=None):
-        super().__init__("\U0001f514", parent)
+        super().__init__(parent)
         self._count = badge_count
+        self.setIcon(qta.icon("mdi.bell-outline", color="#64748B"))
+        self.setIconSize(self.iconSize())
 
     def set_count(self, count: int):
         self._count = count

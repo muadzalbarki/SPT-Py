@@ -4,16 +4,10 @@ __pycache__/
 *.pyc
 *.pyo
 *.db
-data/
 exports/
-backups/
 *.egg-info/
 dist/
 build/
-installer/*.exe
-installer/icon.ico
-*.log
-*.db-journal
 .DS_Store
 Thumbs.db
 *.swp

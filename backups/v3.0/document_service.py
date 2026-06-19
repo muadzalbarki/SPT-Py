@@ -7,12 +7,7 @@ from app.database.models import Surat, PesertaSurat
 from app.services.template_engine import TemplateEngine
 from app.services.nomor_surat_service import NomorSuratService
 from app.services.pdf_service import PdfService
-from app.services.participant_formatter import (
-    build_participant_context,
-    get_ketua_komisi,
-    get_ketua_dprd,
-    format_pendamping_block,
-)
+from app.services.participant_formatter import build_participant_context, get_ketua_komisi
 from app.config import EXPORTS_DIR
 
 
@@ -40,22 +35,7 @@ class DocumentService:
             if on_progress:
                 on_progress("Mengenerate nomor surat...")
 
-            full_context = dict(context)
-
-            nomor_surat_context = full_context.get("nomor_surat", "").strip()
-            nomor_surat_spt_context = full_context.get("nomor_surat_spt", "").strip()
-
-            if nomor_surat_context:
-                nomor_surat = nomor_surat_context
-            else:
-                nomor_surat = NomorSuratService.generate(kode_surat)
-
-            full_context["nomor_surat"] = nomor_surat
-
-            if nomor_surat_spt_context:
-                full_context["nomor_surat_spt"] = nomor_surat_spt_context
-            else:
-                full_context["nomor_surat_spt"] = nomor_surat
+            nomor_surat = NomorSuratService.generate(kode_surat)
 
             if on_progress:
                 on_progress("Memproses data peserta...")
@@ -65,6 +45,9 @@ class DocumentService:
                 p = PegawaiRepo.get_by_id(pid)
                 if p:
                     pegawai_list.append(p)
+
+            full_context = dict(context)
+            full_context["nomor_surat"] = nomor_surat
 
             tanggal = datetime.now()
             from app.utils.helpers import indonesian_date
@@ -77,20 +60,10 @@ class DocumentService:
             komisi = full_context.get("komisi", "")
             for k in ["A", "B", "C"]:
                 ketua = get_ketua_komisi(k)
-                full_context[f"nama_ketua_{k}"] = (
-                    ketua['nama'] if ketua
+                full_context[f"nama_dan_jabatan_ketua_{k}"] = (
+                    f"{ketua['nama']}\n{ketua['jabatan']}" if ketua
                     else f"Ketua Komisi {k} (belum ditentukan)"
                 )
-
-            ketua_dprd = get_ketua_dprd()
-            if ketua_dprd:
-                full_context["ketuadprd"] = ketua_dprd
-
-            pendamping_list = full_context.get("pendamping_list", [])
-            if pendamping_list:
-                start_index = len(pegawai_list) + 1
-                pendamping_block = format_pendamping_block(pendamping_list, start_index=start_index)
-                full_context["pendamping_block"] = pendamping_block
 
             if on_progress:
                 on_progress("Mengganti placeholder...")

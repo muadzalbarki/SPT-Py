@@ -1,12 +1,9 @@
-from datetime import datetime
-
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox,
-    QDateEdit, QTimeEdit, QGroupBox, QStackedWidget,
-    QMessageBox, QProgressBar, QListWidget,
-    QScrollArea,
+    QDateEdit, QGroupBox, QStackedWidget, QSizePolicy,
+    QMessageBox, QProgressBar, QFrame,
 )
-from PySide6.QtCore import Qt, QTimer, QDate
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 
 from app.ui.components import ModernButton
@@ -14,13 +11,14 @@ from app.ui.components.participant_checklist import ParticipantChecklist
 from app.database.repository import PegawaiRepo, TemplateRepo
 from app.utils.constants import KOMISI_LIST, KOMISI_MAP
 from app.services.document_service import DocumentService
-from app.services.participant_formatter import get_ketua_komisi, format_rincian_jumlah
+from app.services.nomor_surat_service import NomorSuratService
+from app.services.participant_formatter import get_ketua_komisi
 
 
 STEP_LABELS = [
-    "Pilih Peserta",
-    "Surat Tugas",
+    "Surat Tugas & Peserta",
     "Detail Kunjungan",
+    "Lanjutan Surat",
     "Signature & Generate",
 ]
 
@@ -28,6 +26,7 @@ STEP_LABELS = [
 class GeneratePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("generatePage")
         self._doc_service = DocumentService()
         self._current_step = 0
         self._setup_ui()
@@ -39,34 +38,29 @@ class GeneratePage(QWidget):
         layout.setSpacing(16)
 
         header = QLabel("Generate Surat")
-        header.setObjectName("pageHeader")
+        header.setFont(QFont("Inter", 30, QFont.Weight.Bold))
         layout.addWidget(header)
-
-        subtitle = QLabel("Buat surat tugas perjalanan dinas")
-        subtitle.setObjectName("pageSubtitle")
-        layout.addWidget(subtitle)
 
         self._step_indicator = self._build_step_indicator()
         layout.addWidget(self._step_indicator)
 
         self._stack = QStackedWidget()
+        self._stack.setObjectName("cardFrame")
+        self._stack.setStyleSheet("QStackedWidget { border: none; background: transparent; }")
 
-        self._page0 = self._build_page0()
         self._page1 = self._build_page1()
         self._page2 = self._build_page2()
         self._page3 = self._build_page3()
+        self._page4 = self._build_page4()
 
-        self._stack.addWidget(self._page0)
         self._stack.addWidget(self._page1)
         self._stack.addWidget(self._page2)
         self._stack.addWidget(self._page3)
+        self._stack.addWidget(self._page4)
         layout.addWidget(self._stack, 1)
 
         self._nav_bar = self._build_nav_bar()
         layout.addWidget(self._nav_bar)
-
-        QTimer.singleShot(0, self._update_nav_buttons)
-        QTimer.singleShot(0, self._update_step_indicator)
 
     def _build_step_indicator(self):
         container = QWidget()
@@ -78,11 +72,19 @@ class GeneratePage(QWidget):
         self._step_labels = []
         for i, label in enumerate(STEP_LABELS):
             step_widget = QWidget()
+            step_widget.setObjectName(f"step_{i}")
             step_layout = QHBoxLayout(step_widget)
             step_layout.setContentsMargins(12, 8, 12, 8)
 
             num_label = QLabel(f"{i+1}")
+            num_label.setObjectName("stepNum")
+            num_label.setFont(QFont("Inter", 12, QFont.Weight.Bold))
+            num_label.setFixedSize(28, 28)
+            num_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
             text_label = QLabel(label)
+            text_label.setObjectName("stepText")
+            text_label.setFont(QFont("Inter", 12, QFont.Weight.Medium))
 
             step_layout.addWidget(num_label)
             step_layout.addWidget(text_label)
@@ -90,7 +92,9 @@ class GeneratePage(QWidget):
             layout.addWidget(step_widget)
 
             if i < len(STEP_LABELS) - 1:
-                arrow = QLabel("\u2192")
+                arrow = QLabel("→")
+                arrow.setFont(QFont("Inter", 14))
+                arrow.setObjectName("stepArrow")
                 arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 layout.addWidget(arrow)
 
@@ -99,6 +103,7 @@ class GeneratePage(QWidget):
 
     def _build_nav_bar(self):
         container = QWidget()
+        container.setObjectName("navBar")
         layout = QHBoxLayout(container)
         layout.setContentsMargins(0, 8, 0, 0)
         layout.setSpacing(12)
@@ -110,174 +115,149 @@ class GeneratePage(QWidget):
         layout.addStretch()
 
         self.btn_prev = ModernButton("\u00ab  Sebelumnya", variant="secondary")
+        self.btn_prev.setMinimumHeight(42)
+        self.btn_prev.setFont(QFont("Inter", 13, QFont.Weight.Medium))
         self.btn_prev.clicked.connect(self._go_prev)
         layout.addWidget(self.btn_prev)
 
         self.btn_next = ModernButton("Selanjutnya  \u00bb", variant="primary")
+        self.btn_next.setMinimumHeight(42)
+        self.btn_next.setFont(QFont("Inter", 13, QFont.Weight.Medium))
         self.btn_next.clicked.connect(self._go_next)
         layout.addWidget(self.btn_next)
 
         self.btn_generate = ModernButton("Generate Surat", variant="primary")
+        self.btn_generate.setMinimumHeight(48)
+        self.btn_generate.setFont(QFont("Inter", 15, QFont.Weight.Bold))
         self.btn_generate.clicked.connect(self._on_generate)
         self.btn_generate.setVisible(False)
         layout.addWidget(self.btn_generate)
 
         return container
 
-    def _build_page0(self):
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.setSpacing(16)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        title = QLabel("Langkah 1 — Pilih Peserta")
-        title.setFont(QFont("Inter", 16, QFont.Weight.Bold))
-        layout.addWidget(title)
-
-        self.peserta_checklist = ParticipantChecklist()
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.peserta_checklist)
-        layout.addWidget(scroll, 1)
-
-        return page
-
     def _build_page1(self):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setSpacing(16)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(24, 24, 24, 24)
 
-        title = QLabel("Langkah 2 — Surat Tugas")
-        title.setFont(QFont("Inter", 16, QFont.Weight.Bold))
+        title = QLabel("Halaman 1 — Surat Tugas & Pilih Peserta")
+        title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
         layout.addWidget(title)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setObjectName("stepScroll")
-        form_container = QWidget()
-        form_layout = QVBoxLayout(form_container)
-        form_layout.setSpacing(16)
-        form_layout.setContentsMargins(0, 0, 0, 0)
 
         komisi_group = QGroupBox("Komisi")
         komisi_form = QHBoxLayout()
         self.komisi_combo = QComboBox()
+        self.komisi_combo.setFont(QFont("Inter", 13))
+        self.komisi_combo.setMinimumHeight(40)
         for k in KOMISI_LIST:
             self.komisi_combo.addItem(KOMISI_MAP.get(k, f"Komisi {k}"), k)
         komisi_form.addWidget(self.komisi_combo, 1)
         komisi_group.setLayout(komisi_form)
-        form_layout.addWidget(komisi_group)
+        layout.addWidget(komisi_group)
 
         nomor_group = QGroupBox("Nomor Surat")
-        nomor_form = QVBoxLayout()
-        row1 = QHBoxLayout()
-        row1.addWidget(QLabel("Nomor Surat (halaman 1):"))
-        self.nomor_surat_input = QLineEdit()
-        self.nomor_surat_input.setPlaceholderText("094/.../VI/2026")
-        row1.addWidget(self.nomor_surat_input, 1)
-        nomor_form.addLayout(row1)
-        row2 = QHBoxLayout()
-        row2.addWidget(QLabel("Nomor SPT (halaman 2-4):"))
-        self.nomor_surat_spt_input = QLineEdit()
-        self.nomor_surat_spt_input.setPlaceholderText("094/.../VI/2026")
-        row2.addWidget(self.nomor_surat_spt_input, 1)
-        nomor_form.addLayout(row2)
+        nomor_form = QHBoxLayout()
+        nomor_form.addWidget(QLabel("Kode:"))
+        self.kode_input = QLineEdit()
+        self.kode_input.setObjectName("formInput")
+        self.kode_input.setPlaceholderText("SPT-001")
+        self.kode_input.setFont(QFont("Inter", 13))
+        nomor_form.addWidget(self.kode_input)
         nomor_group.setLayout(nomor_form)
-        form_layout.addWidget(nomor_group)
+        layout.addWidget(nomor_group)
 
         date_group = QGroupBox("Tanggal")
-        date_form = QVBoxLayout()
-        row_tgl = QHBoxLayout()
-        row_tgl.addWidget(QLabel("Tanggal Surat:"))
+        date_form = QHBoxLayout()
+        date_form.addWidget(QLabel("Tanggal Surat:"))
         self.tanggal_surat = QDateEdit()
+        self.tanggal_surat.setObjectName("formInput")
         self.tanggal_surat.setCalendarPopup(True)
-        self.tanggal_surat.setDisplayFormat("dd/MM/yyyy")
-        self.tanggal_surat.setMinimumDate(QDate.currentDate())
-        self.tanggal_surat.setDate(QDate.currentDate())
-        row_tgl.addWidget(self.tanggal_surat)
-        row_tgl.addStretch()
-        date_form.addLayout(row_tgl)
-        row_hari = QHBoxLayout()
-        row_hari.addWidget(QLabel("Hari/Tanggal Kepergian:"))
-        self.hari_tanggal_input = QLineEdit()
-        self.hari_tanggal_input.setPlaceholderText("Kamis s.d Sabtu, 26 s.d 28 Februari 2026")
-        row_hari.addWidget(self.hari_tanggal_input, 1)
-        date_form.addLayout(row_hari)
+        self.tanggal_surat.setFont(QFont("Inter", 13))
+        date_form.addWidget(self.tanggal_surat)
+        date_form.addStretch()
         date_group.setLayout(date_form)
-        form_layout.addWidget(date_group)
+        layout.addWidget(date_group)
 
         dasar_group = QGroupBox("Surat Tugas")
         dasar_form = QVBoxLayout()
         row_dasar = QHBoxLayout()
-        row_dasar.addWidget(QLabel("Dasar dilakukannya perjalanan dinas:"))
+        row_dasar.addWidget(QLabel("Dasar:"))
         self.dasar_input = QLineEdit()
+        self.dasar_input.setObjectName("formInput")
         self.dasar_input.setPlaceholderText("Nomor dasar surat")
+        self.dasar_input.setFont(QFont("Inter", 13))
         row_dasar.addWidget(self.dasar_input, 1)
         dasar_form.addLayout(row_dasar)
         row_untuk = QHBoxLayout()
-        row_untuk.addWidget(QLabel("Tujuan dilakukannya perjalanan dinas:"))
+        row_untuk.addWidget(QLabel("Untuk:"))
         self.untuk_input = QLineEdit()
+        self.untuk_input.setObjectName("formInput")
         self.untuk_input.setPlaceholderText("Tujuan surat tugas")
+        self.untuk_input.setFont(QFont("Inter", 13))
         row_untuk.addWidget(self.untuk_input, 1)
         dasar_form.addLayout(row_untuk)
         dasar_group.setLayout(dasar_form)
-        form_layout.addWidget(dasar_group)
+        layout.addWidget(dasar_group)
 
-        form_layout.addStretch()
-        scroll.setWidget(form_container)
-        layout.addWidget(scroll, 1)
+        peserta_group = QGroupBox("Pilih Peserta")
+        peserta_layout = QVBoxLayout()
+        self.peserta_checklist = ParticipantChecklist()
+        peserta_layout.addWidget(self.peserta_checklist)
+        peserta_group.setLayout(peserta_layout)
+        layout.addWidget(peserta_group)
+
+        layout.addStretch()
         return page
 
     def _build_page2(self):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setSpacing(16)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(24, 24, 24, 24)
 
-        title = QLabel("Langkah 3 — Detail Kunjungan")
-        title.setFont(QFont("Inter", 16, QFont.Weight.Bold))
+        title = QLabel("Halaman 2 — Detail Kunjungan")
+        title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
         layout.addWidget(title)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setObjectName("stepScroll")
-        form_container = QWidget()
-        form_layout = QVBoxLayout(form_container)
-        form_layout.setSpacing(16)
-        form_layout.setContentsMargins(0, 0, 0, 0)
-
         group = QGroupBox("Tujuan & Latar Belakang")
-        form_inner = QVBoxLayout()
+        form = QVBoxLayout()
 
         row1 = QHBoxLayout()
         row1.addWidget(QLabel("Kab/Kota:"))
         self.kabupaten_input = QLineEdit()
+        self.kabupaten_input.setObjectName("formInput")
         self.kabupaten_input.setPlaceholderText("Kabupaten Semarang")
+        self.kabupaten_input.setFont(QFont("Inter", 13))
         row1.addWidget(self.kabupaten_input, 1)
         row1.addWidget(QLabel("Provinsi:"))
         self.provinsi_input = QLineEdit()
+        self.provinsi_input.setObjectName("formInput")
         self.provinsi_input.setPlaceholderText("Jawa Tengah")
+        self.provinsi_input.setFont(QFont("Inter", 13))
         row1.addWidget(self.provinsi_input, 1)
-        form_inner.addLayout(row1)
+        form.addLayout(row1)
 
         row2 = QHBoxLayout()
         row2.addWidget(QLabel("Tentang:"))
         self.tentang_input = QLineEdit()
+        self.tentang_input.setObjectName("formInput")
         self.tentang_input.setPlaceholderText("Perihal kegiatan...")
+        self.tentang_input.setFont(QFont("Inter", 13))
         row2.addWidget(self.tentang_input, 1)
-        form_inner.addLayout(row2)
+        form.addLayout(row2)
 
         row3 = QHBoxLayout()
         row3.addWidget(QLabel("Materi:"))
         self.materi_input = QLineEdit()
+        self.materi_input.setObjectName("formInput")
         self.materi_input.setPlaceholderText("Pendalaman Materi...")
+        self.materi_input.setFont(QFont("Inter", 13))
         row3.addWidget(self.materi_input, 1)
-        form_inner.addLayout(row3)
+        form.addLayout(row3)
 
-        group.setLayout(form_inner)
-        form_layout.addWidget(group)
+        group.setLayout(form)
+        layout.addWidget(group)
 
         jadwal_group = QGroupBox("Jadwal Kunjungan")
         jadwal_form = QVBoxLayout()
@@ -285,67 +265,87 @@ class GeneratePage(QWidget):
         row4 = QHBoxLayout()
         row4.addWidget(QLabel("Hari:"))
         self.hari_input = QLineEdit()
+        self.hari_input.setObjectName("formInput")
         self.hari_input.setPlaceholderText("Senin")
+        self.hari_input.setFont(QFont("Inter", 13))
         row4.addWidget(self.hari_input)
         row4.addWidget(QLabel("Tanggal:"))
         self.tanggal_kunjungan = QDateEdit()
+        self.tanggal_kunjungan.setObjectName("formInput")
         self.tanggal_kunjungan.setCalendarPopup(True)
-        self.tanggal_kunjungan.setDisplayFormat("dd/MM/yyyy")
-        self.tanggal_kunjungan.setMinimumDate(QDate.currentDate())
-        self.tanggal_kunjungan.setDate(QDate.currentDate())
+        self.tanggal_kunjungan.setFont(QFont("Inter", 13))
         row4.addWidget(self.tanggal_kunjungan)
         row4.addWidget(QLabel("Pukul:"))
-        self.pukul_input = QTimeEdit()
-        self.pukul_input.setDisplayFormat("HH:mm")
+        self.pukul_input = QLineEdit()
+        self.pukul_input.setObjectName("formInput")
+        self.pukul_input.setPlaceholderText("08.00 WIB")
+        self.pukul_input.setFont(QFont("Inter", 13))
         row4.addWidget(self.pukul_input)
         jadwal_form.addLayout(row4)
 
         row5 = QHBoxLayout()
         row5.addWidget(QLabel("Rincian Jumlah:"))
         self.rincian_input = QLineEdit()
+        self.rincian_input.setObjectName("formInput")
         self.rincian_input.setPlaceholderText("1 Ketua, 1 Wakil Ketua, ...")
-        self.rincian_input.setReadOnly(True)
+        self.rincian_input.setFont(QFont("Inter", 13))
         row5.addWidget(self.rincian_input, 1)
         jadwal_form.addLayout(row5)
 
         jadwal_group.setLayout(jadwal_form)
-        form_layout.addWidget(jadwal_group)
+        layout.addWidget(jadwal_group)
 
-        pendamping_group = QGroupBox("Pendamping")
-        pendamping_form = QVBoxLayout()
-        row_nama = QHBoxLayout()
-        row_nama.addWidget(QLabel("Nama:"))
-        self.pendamping_nama_input = QLineEdit()
-        self.pendamping_nama_input.setPlaceholderText("Nama pendamping")
-        row_nama.addWidget(self.pendamping_nama_input, 1)
-        row_nama.addWidget(QLabel("Jabatan:"))
-        self.pendamping_jabatan_input = QLineEdit()
-        self.pendamping_jabatan_input.setPlaceholderText("Jabatan pendamping")
-        row_nama.addWidget(self.pendamping_jabatan_input, 1)
-        btn_tambah = ModernButton("Tambah", variant="primary")
-        btn_tambah.clicked.connect(self._tambah_pendamping)
-        row_nama.addWidget(btn_tambah)
-        pendamping_form.addLayout(row_nama)
-
-        self.pendamping_list_widget = QListWidget()
-        pendamping_form.addWidget(self.pendamping_list_widget)
-        pendamping_group.setLayout(pendamping_form)
-        form_layout.addWidget(pendamping_group)
-
-        self._pendamping_data = []
-
-        form_layout.addStretch()
-        scroll.setWidget(form_container)
-        layout.addWidget(scroll, 1)
+        layout.addStretch()
         return page
 
     def _build_page3(self):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setSpacing(16)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(24, 24, 24, 24)
 
-        title = QLabel("Langkah 4 — Signature Komisi")
+        title = QLabel("Halaman 3 — Lanjutan Surat")
+        title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
+        layout.addWidget(title)
+
+        group = QGroupBox("Tempat Tujuan")
+        form = QVBoxLayout()
+
+        row1 = QHBoxLayout()
+        row1.addWidget(QLabel("Kota/Kabupaten:"))
+        self.kota_input = QLineEdit()
+        self.kota_input.setObjectName("formInput")
+        self.kota_input.setPlaceholderText("Kota Salatiga")
+        self.kota_input.setFont(QFont("Inter", 13))
+        row1.addWidget(self.kota_input, 1)
+        row1.addWidget(QLabel("Provinsi:"))
+        self.provinsi2_input = QLineEdit()
+        self.provinsi2_input.setObjectName("formInput")
+        self.provinsi2_input.setPlaceholderText("Jawa Tengah")
+        self.provinsi2_input.setFont(QFont("Inter", 13))
+        row1.addWidget(self.provinsi2_input, 1)
+        form.addLayout(row1)
+
+        group.setLayout(form)
+        layout.addWidget(group)
+
+        info = QLabel("Field Hari/Tanggal Kepergian akan digabung otomatis dari Halaman 2")
+        info.setFont(QFont("Inter", 11))
+        info.setObjectName("infoText")
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        layout.addStretch()
+        return page
+
+    def _build_page4(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
+
+        title = QLabel("Halaman 4 — Signature Komisi")
+        title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
         layout.addWidget(title)
 
         group = QGroupBox("Preview Surat")
@@ -364,6 +364,8 @@ class GeneratePage(QWidget):
             row = QHBoxLayout()
             row.addWidget(QLabel(f"{label}:"))
             lbl = QLabel("-")
+            lbl.setObjectName("previewValue")
+            lbl.setFont(QFont("Inter", 13, QFont.Weight.DemiBold))
             row.addWidget(lbl, 1)
             form.addLayout(row)
             self._preview_labels[key] = lbl
@@ -371,51 +373,33 @@ class GeneratePage(QWidget):
         form.addSpacing(12)
 
         ketua_label = QLabel("Nama & Jabatan Ketua Komisi")
+        ketua_label.setFont(QFont("Inter", 13, QFont.Weight.Bold))
         form.addWidget(ketua_label)
 
         self._preview_ketua = QLabel("-")
+        self._preview_ketua.setObjectName("previewKetua")
+        self._preview_ketua.setFont(QFont("Inter", 13))
         self._preview_ketua.setWordWrap(True)
+        self._preview_ketua.setStyleSheet("padding: 8px; background: rgba(128,128,128,0.1); border-radius: 6px;")
         form.addWidget(self._preview_ketua)
 
         form.addSpacing(12)
 
         peserta_preview_label = QLabel("Daftar Peserta:")
+        peserta_preview_label.setFont(QFont("Inter", 13, QFont.Weight.Bold))
         form.addWidget(peserta_preview_label)
 
         self._preview_daftar_peserta = QLabel("-")
+        self._preview_daftar_peserta.setObjectName("previewDaftarPeserta")
+        self._preview_daftar_peserta.setFont(QFont("Inter", 11))
         self._preview_daftar_peserta.setWordWrap(True)
+        self._preview_daftar_peserta.setStyleSheet("padding: 8px; background: rgba(128,128,128,0.1); border-radius: 6px;")
         form.addWidget(self._preview_daftar_peserta)
 
         group.setLayout(form)
         layout.addWidget(group)
         layout.addStretch()
         return page
-
-    def _auto_fill_rincian(self):
-        selected_ids = self.peserta_checklist.get_selected_ids()
-        pegawai_list = []
-        for pid in selected_ids:
-            p = PegawaiRepo.get_by_id(pid)
-            if p:
-                pegawai_list.append(p)
-        pendamping_list = getattr(self, '_pendamping_data', [])
-        self.rincian_input.setText(
-            format_rincian_jumlah(pegawai_list, pendamping_list) if pegawai_list else ""
-        )
-
-    def _tambah_pendamping(self):
-        nama = self.pendamping_nama_input.text().strip()
-        jabatan = self.pendamping_jabatan_input.text().strip()
-        if not nama:
-            QMessageBox.warning(self, "Peringatan", "Masukkan nama pendamping")
-            return
-        if not jabatan:
-            jabatan = "Pendamping"
-        self._pendamping_data.append({"nama": nama, "jabatan": jabatan})
-        self.pendamping_list_widget.addItem(f"{len(self._pendamping_data)}. {nama} — {jabatan}")
-        self.pendamping_nama_input.clear()
-        self.pendamping_jabatan_input.clear()
-        self._auto_fill_rincian()
 
     def _update_step_indicator(self):
         for i, (num_lbl, text_lbl, widget) in enumerate(self._step_labels):
@@ -435,14 +419,10 @@ class GeneratePage(QWidget):
         self.btn_generate.setVisible(is_last)
 
     def _go_next(self):
-        if self._current_step == 0 and not self._validate_page0():
+        if self._current_step == 0 and not self._validate_page1():
             return
-        if self._current_step == 1 and not self._validate_page1():
+        if self._current_step == 1 and not self._validate_page2():
             return
-        if self._current_step == 2 and not self._validate_page2():
-            return
-        if self._current_step == 1:
-            self._auto_fill_rincian()
         if self._current_step == 2:
             self._update_preview()
 
@@ -459,14 +439,15 @@ class GeneratePage(QWidget):
             self._update_step_indicator()
             self._update_nav_buttons()
 
-    def _validate_page0(self):
+    def _validate_page1(self):
+        kode = self.kode_input.text().strip()
+        if not kode:
+            QMessageBox.warning(self, "Peringatan", "Isi kode nomor surat")
+            return False
         selected_ids = self.peserta_checklist.get_selected_ids()
         if not selected_ids:
             QMessageBox.warning(self, "Peringatan", "Pilih minimal 1 peserta")
             return False
-        return True
-
-    def _validate_page1(self):
         return True
 
     def _validate_page2(self):
@@ -478,8 +459,7 @@ class GeneratePage(QWidget):
 
     def _update_preview(self):
         komisi = self.komisi_combo.currentData() or ""
-        nomor_surat = self.nomor_surat_input.text().strip()
-        nomor_surat_spt = self.nomor_surat_spt_input.text().strip()
+        kode = self.kode_input.text().strip()
         tanggal = self.tanggal_surat.date().toPython()
         from app.utils.helpers import indonesian_date
         tgl_str = indonesian_date(tanggal)
@@ -487,7 +467,10 @@ class GeneratePage(QWidget):
         untuk = self.untuk_input.text().strip() or "-"
 
         self._preview_labels["preview_komisi"].setText(KOMISI_MAP.get(komisi, f"Komisi {komisi}"))
-        preview_nomor = nomor_surat if nomor_surat else "(auto-generate)"
+        try:
+            preview_nomor = NomorSuratService.generate(kode)
+        except Exception:
+            preview_nomor = f"094/{kode}/.../...."
         self._preview_labels["preview_nomor"].setText(preview_nomor)
         self._preview_labels["preview_tanggal"].setText(tgl_str)
         self._preview_labels["preview_dasar"].setText(dasar)
@@ -503,7 +486,7 @@ class GeneratePage(QWidget):
 
         ketua = get_ketua_komisi(komisi)
         if ketua:
-            self._preview_ketua.setText(ketua['nama'])
+            self._preview_ketua.setText(f"{ketua['nama']}\n{ketua['jabatan']}")
         else:
             self._preview_ketua.setText(f"Ketua Komisi {komisi} (belum ditentukan)")
 
@@ -516,28 +499,23 @@ class GeneratePage(QWidget):
         tanggal_kunjungan = self.tanggal_kunjungan.date().toPython()
 
         from app.utils.helpers import indonesian_date
-        kab_kota = self.kabupaten_input.text().strip()
         return {
             "komisi": komisi,
-            "nomor_surat": self.nomor_surat_input.text().strip(),
-            "nomor_surat_spt": self.nomor_surat_spt_input.text().strip(),
             "hari": self.hari_input.text().strip(),
-            "tanggal": indonesian_date(tanggal_kunjungan),
-            "pukul": self.pukul_input.time().toString("HH:mm") + " WIB",
+            "tanggal": tanggal_kunjungan.strftime("%d %B %Y"),
+            "pukul": self.pukul_input.text().strip(),
             "hari_tanggal_kepergian_dari_kapan_sampai_kapan": (
-                self.hari_tanggal_input.text().strip()
-                or f"{self.hari_input.text().strip()}, {indonesian_date(tanggal_kunjungan)}"
+                f"{self.hari_input.text().strip()}, {tanggal_kunjungan.strftime('%d %B %Y')}"
             ),
-            "kabupaten/kota": kab_kota,
-            "kota/kabupaten": kab_kota,
+            "kabupaten/kota": self.kabupaten_input.text().strip(),
+            "kota/kabupaten": self.kota_input.text().strip(),
             "provinsi": self.provinsi_input.text().strip(),
             "materi": self.materi_input.text().strip(),
             "tentang": self.tentang_input.text().strip(),
             "dasar": self.dasar_input.text().strip(),
             "untuk": self.untuk_input.text().strip(),
             "rincian_jumlah": self.rincian_input.text().strip(),
-            "tanggalrapat": indonesian_date(tanggal),
-            "pendamping_list": getattr(self, '_pendamping_data', []),
+            "tanggalrapat": tanggal.strftime("%d %B %Y"),
         }
 
     def _on_generate(self):
@@ -551,11 +529,10 @@ class GeneratePage(QWidget):
             QMessageBox.warning(self, "Peringatan", "Template SPT Setwan tidak ditemukan")
             return
 
-        nomor_surat_input = self.nomor_surat_input.text().strip()
-        if nomor_surat_input:
-            kode = nomor_surat_input
-        else:
-            kode = f"AUTO-{datetime.now().strftime('%y%m%d%H%M%S')}"
+        kode = self.kode_input.text().strip()
+        if not kode:
+            QMessageBox.warning(self, "Peringatan", "Isi kode nomor surat")
+            return
 
         selected_ids = self.peserta_checklist.get_selected_ids()
         if not selected_ids:
@@ -606,6 +583,11 @@ class GeneratePage(QWidget):
 
     def _load_data(self):
         try:
+            templates = TemplateRepo.get_all()
+            for t in templates:
+                if t.nama == "SPT Setwan":
+                    break
+
             self.peserta_checklist.load_participants()
         except Exception:
             pass

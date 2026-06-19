@@ -60,7 +60,7 @@ class WebEnginePdfViewer(BasePdfViewer):
         self.btn_zoom_in.clicked.connect(self.zoom_in)
         toolbar_layout.addWidget(self.btn_zoom_in)
 
-        self.btn_print = QPushButton("🖨️ Print")
+        self.btn_print = QPushButton("Print")
         self.btn_print.clicked.connect(self.print_pdf)
         toolbar_layout.addWidget(self.btn_print)
 

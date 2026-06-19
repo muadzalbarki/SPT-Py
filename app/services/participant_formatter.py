@@ -44,12 +44,11 @@ def format_pendamping_block(pendamping_list: list[dict], start_index: int = 1) -
     for i, pd in enumerate(pendamping_list, start_index):
         nama = pd.get("nama", "").strip()
         jabatan = pd.get("jabatan", "").strip()
-        if nama:
-            lines.append(f"{i}.{nama} — {jabatan}" if jabatan else f"{i}.{nama}")
+        lines.append(f"{i}. {nama} — {jabatan}")
     return "\n".join(lines)
 
 
-def format_rincian_jumlah(pegawai_list: list[Any], pendamping_list: list[dict] = None) -> str:
+def format_rincian_jumlah(pegawai_list: list[Any], pendamping_list: list[dict] | None = None) -> str:
     _pos_rank = {"Ketua": 0, "Wakil": 1, "Sekretaris": 2}
     def sort_key(jabatan):
         return (_pos_rank.get(jabatan.split()[0] if jabatan else "", 3), jabatan)
@@ -60,11 +59,7 @@ def format_rincian_jumlah(pegawai_list: list[Any], pendamping_list: list[dict] =
     sorted_jabatan = sorted(counts.keys(), key=sort_key)
     result = ", ".join(f"{counts[j]} {j}" for j in sorted_jabatan)
     if pendamping_list:
-        count = len(pendamping_list)
-        if result:
-            result += f", {count} Pendamping"
-        else:
-            result = f"{count} Pendamping"
+        result += f", {len(pendamping_list)} Pendamping"
     return result
 
 

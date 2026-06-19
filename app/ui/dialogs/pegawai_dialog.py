@@ -29,27 +29,22 @@ class PegawaiDialog(QDialog):
         form.setSpacing(12)
 
         self.nama_input = QLineEdit()
-        self.nama_input.setObjectName("formInput")
         self.nama_input.setText(self._data.get("nama", ""))
         form.addRow("Nama:", self.nama_input)
 
         self.nip_input = QLineEdit()
-        self.nip_input.setObjectName("formInput")
         self.nip_input.setText(self._data.get("nip", ""))
         form.addRow("NIP:", self.nip_input)
 
         self.jabatan_input = QLineEdit()
-        self.jabatan_input.setObjectName("formInput")
         self.jabatan_input.setText(self._data.get("jabatan", ""))
         form.addRow("Jabatan:", self.jabatan_input)
 
         self.pangkat_input = QLineEdit()
-        self.pangkat_input.setObjectName("formInput")
         self.pangkat_input.setText(self._data.get("pangkat_gol", ""))
         form.addRow("Pangkat/Gol:", self.pangkat_input)
 
         self.instansi_input = QLineEdit()
-        self.instansi_input.setObjectName("formInput")
         self.instansi_input.setText(self._data.get("instansi", "DPRD Kota Salatiga"))
         form.addRow("Instansi:", self.instansi_input)
 
@@ -61,7 +56,6 @@ class PegawaiDialog(QDialog):
         form.addRow("Komisi:", self.komisi_combo)
 
         self.hp_input = QLineEdit()
-        self.hp_input.setObjectName("formInput")
         self.hp_input.setText(self._data.get("no_hp", ""))
         form.addRow("No. HP:", self.hp_input)
 
@@ -69,10 +63,10 @@ class PegawaiDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch()
-        self.btn_cancel = ModernButton("Batal", variant="ghost")
+        self.btn_cancel = ModernButton("Batal", icon="cancel", variant="ghost")
         self.btn_cancel.clicked.connect(self.reject)
         buttons.addWidget(self.btn_cancel)
-        self.btn_save = ModernButton("Simpan", variant="primary")
+        self.btn_save = ModernButton("Simpan", icon="save", variant="primary")
         self.btn_save.clicked.connect(self._save)
         buttons.addWidget(self.btn_save)
         layout.addLayout(buttons)

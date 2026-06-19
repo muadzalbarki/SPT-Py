@@ -1,9 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
-from app.paths import get_data_root
-
-DATABASE_PATH = get_data_root() / "data" / "spt_dprd.db"
+from app.config import DATABASE_PATH
 
 Base = declarative_base()
 
@@ -13,9 +11,8 @@ _SessionFactory = None
 
 def init_db():
     global _engine, _SessionFactory
-    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     _engine = create_engine(
-        f"sqlite:///{DATABASE_PATH.as_posix()}",
+        f"sqlite:///{DATABASE_PATH}",
         connect_args={"check_same_thread": False},
         echo=False,
     )

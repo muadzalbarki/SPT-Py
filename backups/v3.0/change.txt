@@ -1,0 +1,401 @@
+CHANGE LOG v2.0
+================
+Date: 2026-05-21
+Project: SPT-py (SPT-DPRD)
+
+---
+
+1. QPAINTER FIX — AnimationManager._remove_effect
+---------------------------------------------------
+Problem:  Every fade_in/fade_out call created a new QGraphicsOpacityEffect and
+          set it on the widget via setGraphicsEffect() without removing the old
+          one. Qt then got two painters on the same paint device, causing:
+          - QPainter::begin: A paint device can only be painted by one painter
+          - QPainter::translate: Painter not active
+          - QPainter::restore: Unbalanced save/restore
+          - QWidgetEffectSourcePrivate::pixmap: Painter not active
+          The old effect also leaked memory.
+
+Fix:      Added AnimationManager._remove_effect(widget) which:
+          1. Calls widget.graphicsEffect() to get the old effect
+          2. Calls widget.setGraphicsEffect(None) to detach it
+          3. Calls old.deleteLater() to free it
+          Called at the top of both fade_in() and fade_out()
+
+File:     app/core/animation_manager.py
+
+---
+
+2. PAGE SWITCH FIX — clean transition + forced repaint
+--------------------------------------------------------
+Problem:  When switching pages via sidebar, the old widget remained partially
+          visible (stale render), the new widget didn't paint until the user
+          moved the mouse, and animations didn't play.
+
+Fix:      In MainWindow._switch_page():
+          1. AnimationManager._remove_effect(old) → clean up old opacity
+          2. old.hide() → ensure old page is fully hidden
+          3. pages.setCurrentIndex(index) → switch
+          4. current.show() + current.update() + current.repaint()
+          5. QApplication.processEvents() → flush the paint queue
+          6. Then refresh + fade_in on the new page
+
+File:     app/ui/main_window.py
+
+---
+
+3. DASHBOARD SHOWEVENT — lazy loading
+---------------------------------------
+Problem:  DashboardPage loaded data via QTimer.singleShot in __init__, which
+          only fired once on construction (not when returning to the page).
+          Stat card animations didn't play on subsequent visits.
+
+Fix:      Added showEvent() override with _loaded flag. Data loads only on
+          the first show(). refresh() still works for manual reload.
+
+File:     app/ui/pages/dashboard_page.py
+
+---
+
+4. PARTICIPANT FORMATTER — block-based template generation
+------------------------------------------------------------
+Problem:  The old code had a hardcoded hack in document_service.py that
+          auto-filled {Nama} and {Jabatan} with the ketua komisi's data,
+          ignoring selected participants. Multi-participant output was broken:
+          - "MEMERINTAHKAN" section showed only the ketua
+          - "DAFTAR PESERTA PENDALAMAN MATERI" showed all ketua names
+          - No looping/block structure for multiple participants
+
+Fix:      Created participant_formatter.py with three exported functions:
+          - format_peserta_block(pegawai_list) → pre-formatted numbered blocks
+            each containing Nama, Pangkat/gol, NIP, Jabatan per participant
+          - format_daftar_peserta_block(pegawai_list) → compact numbered list
+            of "Nama — Jabatan" per participant
+          - build_participant_context(pegawai_list) → returns dict with:
+              peserta_terpilih: list[dict] (for experimental XML loops)
+              peserta_block: str (pre-formatted, use in template as
+                             {peserta_block})
+              daftar_peserta_block: str (use as {daftar_peserta_block})
+              jumlah: str (count)
+              Nama, NIP, Jabatan, Pangkat/gol: first participant
+              (fallback, NOT overriding block system)
+
+File:     app/services/participant_formatter.py (NEW)
+
+---
+
+5. TEMPLATE CONTEXT CLEANUP — document_service.py
+----------------------------------------------------
+Fix:
+          - Removed the auto-fill hack:
+              ketua = PegawaiRepo.get_all(search="Ketua", komisi=komisi)
+              full_context["Nama"] = ketua[0].nama  ← REMOVED
+          - Replaced with:
+              from app.services.participant_formatter import build_participant_context
+              participant_data = build_participant_context(pegawai_list)
+              full_context.update(participant_data)
+          - This adds {peserta_block}, {daftar_peserta_block}, {jumlah},
+            {Nama}, {NIP}, {Jabatan}, {Pangkat/gol} to the template context.
+
+File:     app/services/document_service.py
+
+---
+
+6. COLLAPSIBLE SECTION WIDGET
+-------------------------------
+New reusable widget for expandable/collapsible UI sections with smooth
+height animation.
+
+Features:
+  - QPushButton header with ▼/▶ arrow indicator
+  - Smooth QPropertyAnimation(maximumHeight, 200ms, OutCubic)
+  - QWidget content container with add_widget()
+  - set_expanded() / is_expanded() / clear()
+
+File:     app/ui/components/collapsible_section.py (NEW)
+
+---
+
+7. PARTICIPANT CHECKLIST WIDGET
+---------------------------------
+Replaced the flat QCheckBox list in generate_page with a modern grouped
+checklist organized by komisi.
+
+Features:
+  - Auto-grouped into sections: Pimpinan DPRD, Komisi A, Komisi B, Komisi C
+  - Each section is a CollapsibleSection (expand/collapse with animation)
+  - "Pilih Semua" checkbox per section → tri-state (all/partial/none)
+  - "Hapus Semua" button
+  - Live counter label ("X peserta dipilih")
+  - Real-time search bar filtering by name/jabatan
+  - Signals: selection_changed(ids), selection_count_changed(count)
+  - get_selected_ids(), get_selected_count()
+
+File:     app/ui/components/participant_checklist.py (NEW)
+
+---
+
+8. GENERATE PAGE — updated to use ParticipantChecklist
+--------------------------------------------------------
+Replaced:
+  - self.peserta_list = QVBoxLayout() + self._peserta_checkboxes = []
+  - self.peserta_search (old SearchBar for flat list)
+  - _filter_peserta() / _clear_layout()
+
+With:
+  - self.peserta_checklist = ParticipantChecklist()
+  - self.peserta_checklist.get_selected_ids()
+
+Removed unused imports: QTextEdit, QThread, Signal, QCheckBox (from
+generate_page; still used in components).
+
+File:     app/ui/pages/generate_page.py
+
+---
+
+9. CONFIG — new experimental flag
+-----------------------------------
+Added:
+  ENABLE_EXPERIMENTAL_XML_REPEAT = False
+
+For future use when ParticipantRepeater XML cloning is ready.
+
+File:     app/config.py
+
+---
+
+10. COMPONENTS __init__ — new exports
+---------------------------------------
+Added ParticipantChecklist and CollapsibleSection to __all__.
+
+File:     app/ui/components/__init__.py
+
+---
+
+SUMMARY
+=======
+
+NEW FILES:
+  app/services/participant_formatter.py
+  app/ui/components/collapsible_section.py
+  app/ui/components/participant_checklist.py
+
+MODIFIED FILES:
+  app/core/animation_manager.py     +_remove_effect to prevent QPainter errors
+  app/ui/main_window.py             clean page transition + forced repaint
+  app/ui/pages/dashboard_page.py    showEvent-based lazy loading
+  app/services/document_service.py  removed auto-fill hack, uses formatter
+  app/ui/pages/generate_page.py     uses ParticipantChecklist
+  app/config.py                     +ENABLE_EXPERIMENTAL_XML_REPEAT
+  app/ui/components/__init__.py     +new widget exports
+
+ARCHITECTURE DECISIONS:
+  - Primary template method: {peserta_block} + {daftar_peserta_block}
+    placeholders with pre-formatted text (stable, predictable)
+  - XML cloning (ParticipantRepeater): experimental, behind flag
+  - Removed ketua auto-fill hack → first selected participant as fallback
+   - Page animation: remove old effect → hide → switch → show → repaint →
+     refresh → fade_in
+
+---
+
+v2.1 — TEMPLATE PLACEHOLDER FIX + QSS + CAPABILITIES
+======================================================
+
+1. PARTICIPANT FORMATTER — lowercase keys
+------------------------------------------
+Problem:  Template SPT Setwan.docx had participant table with {nama}, {nip},
+          {jabatan}, {pangkat/gol} (LOWERCASE). Our build_participant_context()
+          only provided uppercase keys {Nama}, {NIP}, {Jabatan}, {Pangkat/gol}.
+          TemplateEngine does literal string replacement — case mismatch means
+          nothing got replaced. The output showed blank/unchanged placeholders.
+
+Fix:      Added lowercase keys alongside uppercase:
+            nama, nip, jabatan, pangkat/gol  → for template table rows
+            Nama, NIP, Jabatan, Pangkat/gol  → for daftar peserta section
+
+File:     app/services/participant_formatter.py
+
+2. TEMPLATE DOCX — block placeholders
+---------------------------------------
+Problem:  Template had 2 problematic sections:
+          - Table 2: 9-row participant table with {nama} per row (hardcoded 9,
+            no way to loop)
+          - Table 16: Single-row "DAFTAR PESERTA" with {Nama}/{Jabatan} (only
+            one person)
+          Both broke with multiple participants.
+
+Fix:      Modified both SPT Setwan.docx copies:
+          - Removed Table 2 entirely, replaced with {peserta_block}
+          - Replaced Table 16 content with {daftar_peserta_block}
+          Now the template engine fills these with pre-formatted multi-line
+          blocks containing all selected participants.
+
+Files:    SPT Setwan.docx (root + templates/)
+
+3. QSS — QGroupBox white background on dark theme
+---------------------------------------------------
+Problem:  QGroupBox in generate page had system default background (white on
+          Linux) even during dark theme. QSS didn't set background, so Qt
+          used platform style.
+
+Fix:      Added background: transparent; to QGroupBox rule in both themes.
+
+Files:    app/themes/catppuccin_mocha.py
+          app/themes/catppuccin_latte.py
+
+4. PlatformCapabilities — disable animations on Linux
+-------------------------------------------------------
+New class that gates opacity animations, advanced effects, and frameless
+based on platform. On Linux: no opacity, no frameless, no glow.
+On Windows/macOS: all effects enabled.
+
+Files:    app/core/capabilities.py (NEW)
+          app/core/animation_manager.py (gate fade_in/fade_out)
+          app/ui/components/stat_card.py (gate animate_in)
+          app/core/platform_detection.py (delegate frameless)
+
+CURRENT PLACEHOLDER LIST (template):
+  {peserta_block}           — block of all participants (numbered)
+  {daftar_peserta_block}    — compact list for DAFTAR PESERTA section
+  {nama}, {Nama}            — first participant name (fallback)
+  {nip}, {NIP}              — first participant NIP (fallback)
+  {jabatan}, {Jabatan}      — first participant position (fallback)
+  {pangkat/gol}, {Pangkat/gol} — first participant rank (fallback)
+  {hari}, {tanggal}, {Pukul}, {materi}, {tentang}, {nomor},
+  {kabupaten/kota}, {provinsi}, {komisi}, {nomor_surat},
+  {tanggal_aplikasi_digunakan}, {tanggalsuratdibuat},
+  {hari_tanggal_kepergian_dari_kapan_sampai_kapan},
+  {Kota/Kabupaten_dan_Provinsi}, {jumlah}, {rincian_jumlah},
+  {tanggalrapat}, {untuk}
+
+
+v2.2 — HAPUS PEGAWAI
+=====================
+
+1. HAPUS PEGAWAI — tombol + konfirmasi
+-----------------------------------------
+Added "Hapus" button (danger/red variant) to Data Pegawai toolbar.
+Select rows, confirm dialog, then PegawaiRepo.delete() per employee.
+Cascade delete cleans up related PesertaSurat records.
+
+Files:
+    app/ui/pages/pegawai_page.py
+
+
+v3.0 — WIZARD GENERATE + SINKRON TEMPLATE
+============================================
+Date: 2026-06-05
+
+1. GENERATE PAGE — wizard multi-halaman (4 langkah)
+-----------------------------------------------------
+Problem:  Generate page menampilkan semua form field dalam satu halaman
+          scroll panjang. Tidak intuitif karena user harus mengisi 20+ field
+          sekaligus tanpa panduan halaman dokumen SPT.
+
+Fix:      Refactor total generate_page.py menjadi wizard 4 langkah dengan
+          QStackedWidget. Setiap langkah sesuai halaman fisik SPT Setwan:
+
+          Step 1 (Halaman Surat Tugas):
+            - Pilih Komisi + input Kode, Tanggal, Dasar, Untuk
+            - ParticipantChecklist (pilih peserta)
+          Step 2 (Halaman Detail Kunjungan):
+            - Input Kab/Kota, Provinsi, Tentang, Materi, Hari, Pukul
+            - Tanggal kunjungan, Rincian Jumlah
+          Step 3 (Halaman Lanjutan Surat):
+            - Input Kota/Kab Tujuan, Provinsi
+          Step 4 (Halaman Signature Komisi):
+            - Preview semua auto-filled + Nama Ketua Komisi dari DB
+            - Tombol Generate Surat
+
+          Navigasi: tombol « Sebelumnya dan Selanjutnya »
+          Data context diwariskan antar langkah, dikumpulkan di langkah 4.
+
+File:     app/ui/pages/generate_page.py
+
+---
+
+2. PLACEHOLDER SINKRON — template terbaru
+-------------------------------------------
+Problem:  Template SPT Setwan.docx telah diperbarui dengan perubahan
+          placeholder. Sistem (DB + kode) masih menggunakan placeholder lama
+          yang sudah tidak ada di template, menyebabkan missmatch dan
+          placeholder tidak terganti.
+
+Perubahan placeholder:
+  Old                New                Status
+  ─────────────────────────────────────────────────
+  {nomor}            {dasar}            RENAME
+  {Pukul}            {pukul}            RENAME (lowercase)
+  {Kota/Kabupaten_   {kota/kabupaten}   RENAME
+   dan_Provinsi}
+  {nama_ketua_       {nama_dan_jabatan_ RENAME
+   {komisi}}          ketua_{komisi}}
+  {kbupaten/kota}    —                  REMOVED
+  {Tempat}           —                  REMOVED
+  {nama}, {Nama}     —                  REMOVED (ganti {peserta_block})
+  {nip}, {NIP}       —                  REMOVED (ganti {peserta_block})
+  {jabatan},         —                  REMOVED (ganti {peserta_block})
+   {Jabatan}
+  {pangkat/gol},     —                  REMOVED (ganti {peserta_block})
+   {Pangkat/gol}
+
+Files affected:
+  app/services/participant_formatter.py  — hapus individual keys
+  app/services/document_service.py       — hapus Tempat, update context
+  app/database/seed.py                   — re-detect, update DB record
+  app/services/template_engine.py        — fix nested brace detection
+
+---
+
+3. AUTO-FILL KETUA KOMISI
+---------------------------
+Fix:      Fungsi baru get_ketua_komisi(komisi) di participant_formatter.py
+          query database untuk pegawai dengan jabatan "Ketua Komisi {A/B/C}".
+          Hasilnya diformat "Nama\\nJabatan" dan diisi ke context key:
+            nama_dan_jabatan_ketua_A
+            nama_dan_jabatan_ketua_B
+            nama_dan_jabatan_ketua_C
+          Template engine resolve: {nama_dan_jabatan_ketua_{komisi}}
+          → {nama_dan_jabatan_ketua_A} → "Dance Ishak Palit, M.Si."
+          Jika ketua tidak ditemukan, fallback "Ketua Komisi {k} (belum ditentukan)".
+
+File:     app/services/participant_formatter.py (new function)
+          app/services/document_service.py (caller)
+
+---
+
+4. TEMPLATE REGISTRASI — re-detect on update
+-----------------------------------------------
+Fix:      seed.py tidak lagi skip registrasi template jika pegawai sudah ada.
+          Sekarang mengecek template file timestamp dan re-detect placeholders
+          setiap kali aplikasi dijalankan, update record di DB jika ada
+          perubahan.
+          Juga menangani nested brace: {nama_dan_jabatan_ketua_{komisi}}
+          dideteksi dengan regex yang handle brace bertingkat.
+
+File:     app/database/seed.py
+
+---
+
+SUMMARY v3.0
+=============
+
+MODIFIED FILES:
+  app/ui/pages/generate_page.py              wizard 4 langkah (refactor total)
+  app/services/participant_formatter.py      hapus individual keys, +get_ketua_komisi()
+  app/services/document_service.py           tambah auto-fill ketua, hapus Tempat
+  app/database/seed.py                       re-detect + update template record
+  app/services/template_engine.py            fix nested brace detection
+  change.txt                                 +v3.0 entry
+
+BACKUP:
+  backups/v2.2/ — semua file original sebelum perubahan v3.0
+
+ROLLBACK:
+  Untuk kembali ke v2.2, restore file dari backups/v2.2/:
+    cp backups/v2.2/*.py app/services/
+    cp backups/v2.2/generate_page.py app/ui/pages/
+    cp backups/v2.2/seed.py app/database/
+    cp backups/v2.2/change.txt ./
+    # lalu hapus data/spt_dprd.db agar seed ulang
