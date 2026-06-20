@@ -931,6 +931,30 @@ Date: 2026-06-19
     - Template di root project terduplikasi dengan templates/SPT Setwan.docx
     - Hapus copy root, gunakan yang di templates/
 
+15. FIX TEXT CLIPPING — pageSubtitle margin-top
+---------------------------------------------------
+    - Hapus margin-top: -12px dari QLabel#pageSubtitle di QSS
+    - Teks subtitle di Dashboard, Generate, dan halaman lain tidak
+      terpotong lagi karena negative margin
+
+16. UPDATE README.md — dokumentasi terkini
+---------------------------------------------
+    - Deskripsi fitur sesuai state v3.7 (dark mode, wizard 4 langkah,
+      token system, icon mdi, pendamping)
+    - Struktur proyek real (app/core/, themes/, backups/)
+    - 23 placeholders template
+    - Hapus referensi catppuccin, template upload, light mode, auto nomor
+    - Hapus section Build EXE (tidak relevan)
+
+17. UPDATE alur.txt — dokumentasi alur terkini
+------------------------------------------------
+    - 5 menu: Dashboard (2 stat card), Pegawai, Generate (4-step wizard),
+      Riwayat Surat, Pengaturan (tanpa toggle tema)
+    - Penjelasan tiap step wizard termasuk pendamping
+    - Dark mode only + Government Navy + Gold theme
+    - Teknologi stack terkini (qtawesome icon, Inter font)
+    - Struktur proyek detail
+
 
 SUMMARY v3.7
 =============
@@ -960,6 +984,8 @@ MODIFIED FILES:
     app/ui/components/pdf/webengine_viewer.py — hapus emoji
     requirements.txt                        — hapus pyqtdarktheme, qtwidgets
     change.txt                              — +v3.7 entry
+    README.md                               — update deskripsi, struktur, fitur
+    alur.txt                                — update alur 5 menu + wizard
 
 DELETED FILES:
     app/themes/catppuccin_mocha.py
