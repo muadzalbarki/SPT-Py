@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox, QTableWidgetItem
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 
@@ -41,7 +41,7 @@ class SuratPage(QWidget):
         toolbar.addWidget(self.btn_export_pdf)
         layout.addLayout(toolbar)
 
-        self.table = ModernTable(["No Surat", "Tanggal", "Template", "Peserta", "File"])
+        self.table = ModernTable(["No Surat", "Tanggal", "Template", "Peserta", "File", "Aksi"])
         layout.addWidget(self.table, 1)
 
     def _export_pdf(self):
@@ -62,24 +62,49 @@ class SuratPage(QWidget):
             if not surat.file_path:
                 QMessageBox.warning(self, "Peringatan", "File surat tidak ditemukan")
                 return
-            self._pdf_service.convert(surat.file_path, save_path)
+            output_dir = str(Path(save_path).parent)
+            result = self._pdf_service.convert_to_pdf(surat.file_path, output_dir)
+            if not result:
+                QMessageBox.warning(self, "Gagal", "Konversi PDF gagal")
+                return
+            if result != save_path:
+                Path(result).rename(save_path)
             QMessageBox.information(self, "Sukses", f"PDF berhasil disimpan:\n{save_path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Gagal export PDF: {e}")
 
+    def _hapus_surat(self, sid: int):
+        reply = QMessageBox.question(
+            self, "Konfirmasi", "Hapus surat ini?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            SuratRepo.delete(sid)
+            self._load_data()
+            main_win = self.window()
+            if main_win and hasattr(main_win, 'pages'):
+                dash = main_win.pages.widget(0)
+                if dash and hasattr(dash, 'refresh'):
+                    dash.refresh()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Gagal menghapus surat: {e}")
+
     def _load_data(self):
         try:
             surat_list = SuratRepo.get_all(limit=100)
-            rows = []
-            for s in surat_list:
-                rows.append([
-                    s.nomor_surat,
-                    s.tanggal.strftime("%d/%m/%Y %H:%M") if s.tanggal else "-",
-                    s.template.nama if s.template else "-",
-                    str(len(s.peserta)),
-                    "\u2713" if s.file_path else "-",
-                ])
-            self.table.populate(rows)
+            self.table.setRowCount(len(surat_list))
+            for r, s in enumerate(surat_list):
+                self.table.setItem(r, 0, QTableWidgetItem(s.nomor_surat))
+                val = s.tanggal.strftime("%d/%m/%Y %H:%M") if s.tanggal else "-"
+                self.table.setItem(r, 1, QTableWidgetItem(val))
+                self.table.setItem(r, 2, QTableWidgetItem(s.template.nama if s.template else "-"))
+                self.table.setItem(r, 3, QTableWidgetItem(str(len(s.peserta))))
+                self.table.setItem(r, 4, QTableWidgetItem("\u2713" if s.file_path else "-"))
+                btn = QPushButton("Hapus")
+                btn.clicked.connect(lambda checked, sid=s.id: self._hapus_surat(sid))
+                self.table.setCellWidget(r, 5, btn)
         except Exception as e:
             print(f"[SuratPage] Gagal load data: {e}")
 

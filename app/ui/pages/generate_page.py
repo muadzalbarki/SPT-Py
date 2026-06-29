@@ -213,7 +213,7 @@ class GeneratePage(QWidget):
         row_dasar = QHBoxLayout()
         row_dasar.addWidget(QLabel("Dasar dilakukannya perjalanan dinas:"))
         self.dasar_input = QLineEdit()
-        self.dasar_input.setPlaceholderText("Nomor dasar surat")
+        self.dasar_input.setPlaceholderText("Dasar perjalanan dinas")
         row_dasar.addWidget(self.dasar_input, 1)
         dasar_form.addLayout(row_dasar)
         row_untuk = QHBoxLayout()
@@ -261,13 +261,6 @@ class GeneratePage(QWidget):
         self.provinsi_input.setPlaceholderText("Jawa Tengah")
         row1.addWidget(self.provinsi_input, 1)
         form_inner.addLayout(row1)
-
-        row2 = QHBoxLayout()
-        row2.addWidget(QLabel("Tentang:"))
-        self.tentang_input = QLineEdit()
-        self.tentang_input.setPlaceholderText("Perihal kegiatan...")
-        row2.addWidget(self.tentang_input, 1)
-        form_inner.addLayout(row2)
 
         row3 = QHBoxLayout()
         row3.addWidget(QLabel("Materi:"))
@@ -532,7 +525,6 @@ class GeneratePage(QWidget):
             "kota/kabupaten": kab_kota,
             "provinsi": self.provinsi_input.text().strip(),
             "materi": self.materi_input.text().strip(),
-            "tentang": self.tentang_input.text().strip(),
             "dasar": self.dasar_input.text().strip(),
             "untuk": self.untuk_input.text().strip(),
             "rincian_jumlah": self.rincian_input.text().strip(),
