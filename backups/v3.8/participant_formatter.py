@@ -4,14 +4,16 @@ from app.database.repository import PegawaiRepo
 
 
 def format_peserta_block(pegawai_list: list[Any]) -> str:
-    lines = []
+    blocks = []
     for i, p in enumerate(pegawai_list, 1):
-        lines.append(f"{i}.\tNama\t: {p.nama}")
-        lines.append(f"\tPangkat/gol\t: {p.pangkat_gol}")
-        lines.append(f"\tNIP\t: {p.nip}")
-        lines.append(f"\tJabatan\t: {p.jabatan}")
-        lines.append("")
-    return "\n".join(lines)
+        blocks.append(f"""{i}.
+Nama\t\t: {p.nama}
+Pangkat/gol\t: {p.pangkat_gol}
+NIP\t\t: {p.nip}
+Jabatan\t\t: {p.jabatan}
+
+""")
+    return "".join(blocks)
 
 
 def format_daftar_peserta_block(pegawai_list: list[Any]) -> str:

@@ -137,3 +137,7 @@ SPT-Py/
 ├── requirements.txt
 ├── change.txt
 └── alur.txt
+
+---
+Untuk penjelasan detail struktur file dan istilah teknis,
+lihat → dokumentasi-teknis.md

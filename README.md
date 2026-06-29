@@ -2,29 +2,29 @@
 
 **Sistem Otomatisasi Surat Pemerintahan**
 
-Aplikasi desktop modern berbasis PySide6 untuk pembuatan Surat Tugas (SPT) dan dokumen pemerintahan di lingkungan Sekretariat DPRD Kota Salatiga.
+   Aplikasi desktop modern berbasis PySide6 untuk pembuatan Surat Tugas (SPT) dan dokumen pemerintahan di lingkungan Sekretariat DPRD Kota Salatiga.
 
----
+   ---
 
-## Fitur
+   ## Fitur
 
-- 🚀 **Wizard Generate 4 Langkah** — Pilih peserta → Surat Tugas → Detail Kunjungan → Signature & Generate
-- 👥 **Database Pegawai** — CRUD, import/export Excel, 25 anggota DPRD siap pakai
-- ✅ **Checklist Peserta** — Pilih per komisi, collapsible section, search filter
-- 📄 **Template Engine** — Placeholder `{ }` replacement otomatis, 23 placeholders
-- 📎 **Export PDF** — LibreOffice headless converter
-- 👤 **Pendamping** — Input nama + jabatan, daftar dinamis, nomor nyambung
-- 🌙 **Dark Mode** — Government Navy + Gold theme via ColorTokens
-- 🎨 **Ikon Material Design** — qtawesome (mdi.* prefix)
-- 🔤 **Font Inter** — Modern sans-serif, licensed
+   - 🚀 **Wizard Generate 4 Langkah** — Pilih peserta → Surat Tugas → Detail Kunjungan → Signature & Generate
+   - 👥 **Database Pegawai** — CRUD, import/export Excel, 25 anggota DPRD siap pakai
+   - ✅ **Checklist Peserta** — Pilih per komisi, collapsible section, search filter
+   - 📄 **Template Engine** — Placeholder `{ }` replacement otomatis, 23 placeholders
+   - 📎 **Export PDF** — LibreOffice headless converter
+   - 👤 **Pendamping** — Input nama + jabatan, daftar dinamis, nomor nyambung
+   - 🌙 **Dark Mode** — Government Navy + Gold theme via ColorTokens
+   - 🎨 **Ikon Material Design** — qtawesome (mdi.* prefix)
+   - 🔤 **Font Inter** — Modern sans-serif, licensed
 
----
+   ---
 
-## Tech Stack
+   ## Tech Stack
 
-| Komponen | Teknologi |
-|---|---|
-| UI Framework | PySide6 (Qt for Python) |
+   | Komponen | Teknologi |
+   |---|---|
+   | UI Framework | PySide6 (Qt for Python) |
 | Database | SQLite + SQLAlchemy ORM |
 | Template | python-docx + lxml XML manipulation |
 | PDF | LibreOffice headless |

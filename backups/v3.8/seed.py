@@ -43,7 +43,23 @@ DPRD_MEMBERS = [
 ]
 
 
+def _random_nip(index: int) -> str:
+    import random
+    y = random.randint(1960, 1995)
+    m = random.randint(1, 12)
+    d = random.randint(1, 28)
+    seq = random.randint(1000, 9999)
+    return f"{y:04d}{m:02d}{d:02d}{seq:04d}0001"
 
+
+def _random_pangkat() -> str:
+    import random
+    gol = random.choice(["III/d", "IV/a", "IV/b", "IV/c", "IV/d"])
+    nama_pangkat = {
+        "III/d": "Penata Tk.I", "IV/a": "Pembina", "IV/b": "Pembina Tk.I",
+        "IV/c": "Pembina Utama Muda", "IV/d": "Pembina Utama Madya",
+    }
+    return f"{nama_pangkat[gol]}/{gol}"
 
 
 def _extract_placeholders_balanced(text: str) -> list[str]:
@@ -120,18 +136,18 @@ def seed_data():
             for i, member in enumerate(DPRD_MEMBERS):
                 p = Pegawai(
                     nama=member["nama"],
-                    nip=f"D{i+1:03d}",
+                    nip=_random_nip(i),
                     jabatan=member["jabatan"],
-                    pangkat_gol="",
+                    pangkat_gol=_random_pangkat(),
                     instansi="DPRD Kota Salatiga",
                     komisi=member["komisi"],
-                    no_hp="",
+                    no_hp=f"081{''.join(str((i*7+j)%10) for j in range(9))}",
                 )
                 session.add(p)
             session.commit()
-            print(f"Seeded {len(DPRD_MEMBERS)} Anggota DPRD from DPRD data")
+            print(f"Seeded {len(DPRD_MEMBERS)} pegawai from DPRD data")
         else:
-            print(f"Anggota DPRD already seeded ({existing_count} records)")
+            print(f"Pegawai already seeded ({existing_count} records)")
 
         _register_template(session)
         session.commit()

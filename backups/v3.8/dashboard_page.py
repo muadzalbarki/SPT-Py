@@ -29,25 +29,18 @@ class DashboardPage(QWidget):
         icon_pegawai = qta.icon("mdi.account-multiple", color=self._tm.tokens.accent_gold).pixmap(24, 24)
         icon_surat = qta.icon("mdi.file-document-outline", color=self._tm.tokens.accent_gold).pixmap(24, 24)
 
-        welcome = QLabel("Selamat datang di SPT-App")
-        welcome.setObjectName("pageHeader")
-        welcome.setStyleSheet("font-size: 28px; font-weight: 700; color: #D4AF37;")
-        layout.addWidget(welcome)
-
-        subtitle = QLabel("Aplikasi Pembuatan Surat Tugas di lingkungan Sekretariat DPRD Kota Salatiga")
-        subtitle.setObjectName("pageSubtitle")
-        layout.addWidget(subtitle)
-
-        layout.addSpacing(12)
-
         header = QLabel("Dashboard")
         header.setObjectName("pageHeader")
         layout.addWidget(header)
 
+        subtitle = QLabel("Overview sistem surat pemerintahan DPRD Kota Salatiga")
+        subtitle.setObjectName("pageSubtitle")
+        layout.addWidget(subtitle)
+
         cards_layout = QHBoxLayout()
         cards_layout.setSpacing(16)
 
-        self.stat_pegawai = StatisticCard(icon_pegawai, "0", "Total Anggota DPRD", self._tm.tokens.accent_gold)
+        self.stat_pegawai = StatisticCard(icon_pegawai, "0", "Total Pegawai", self._tm.tokens.accent_gold)
         self.stat_surat = StatisticCard(icon_surat, "0", "Riwayat Surat", self._tm.tokens.accent_gold)
 
         cards_layout.addWidget(self.stat_pegawai)

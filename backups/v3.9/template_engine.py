@@ -222,16 +222,6 @@ class TemplateEngine:
         for j, re in enumerate(runs_to_insert):
             paragraph.insert(idx + j, re)
 
-    def _inject_tab_stops(self, ppr, ns):
-        tabs = ppr.find(f'{ns}tabs')
-        if tabs is None:
-            tabs = etree.SubElement(ppr, f'{ns}tabs')
-        else:
-            for tab in list(tabs):
-                tabs.remove(tab)
-        etree.SubElement(tabs, f'{ns}tab', **{f'{ns}val': 'left', f'{ns}pos': '567'})
-        etree.SubElement(tabs, f'{ns}tab', **{f'{ns}val': 'left', f'{ns}pos': '3686'})
-
     def _expand_text_elements(self, tree):
         ns = f'{{{self.NS}}}'
         xml_ns = f'{{{self.XML_NS}}}'
@@ -247,10 +237,6 @@ class TemplateEngine:
             rpr = run.find(f'{ns}rPr')
             p = run.getparent()
             parent = p.getparent()
-
-            ppr_orig = p.find(f'{ns}pPr')
-            if ppr_orig is not None:
-                self._inject_tab_stops(ppr_orig, ns)
 
             if '\n\n' in full_text:
                 blocks = full_text.split('\n\n')
@@ -273,9 +259,6 @@ class TemplateEngine:
                     ppr = p.find(f'{ns}pPr')
                     if ppr is not None:
                         new_p.insert(0, copy.deepcopy(ppr))
-                        new_ppr = new_p.find(f'{ns}pPr')
-                        if new_ppr is not None:
-                            self._inject_tab_stops(new_ppr, ns)
                     parent.insert(insert_idx, new_p)
                     insert_idx += 1
 

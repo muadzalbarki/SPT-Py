@@ -6,7 +6,7 @@ PAGE_SETTINGS = 4
 
 NAV_ITEMS = [
     {"label": "Dashboard", "icon": "mdi.home", "page": PAGE_DASHBOARD},
-    {"label": "Anggota DPRD", "icon": "mdi.account-multiple", "page": PAGE_PEGAWAI},
+    {"label": "Pegawai", "icon": "mdi.account-multiple", "page": PAGE_PEGAWAI},
     {"label": "Generate", "icon": "mdi.auto-fix", "page": PAGE_GENERATE},
     {"label": "Riwayat Surat", "icon": "mdi.file-document", "page": PAGE_SURAT},
     {"label": "Pengaturan", "icon": "mdi.cog", "page": PAGE_SETTINGS},

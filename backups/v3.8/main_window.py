@@ -11,7 +11,7 @@ from app.themes.theme_manager import ThemeManager
 
 PAGE_TITLES = {
     0: "Dashboard",
-    1: "Data Anggota DPRD",
+    1: "Data Pegawai",
     2: "Generate Surat",
     3: "Riwayat Surat",
     4: "Pengaturan",

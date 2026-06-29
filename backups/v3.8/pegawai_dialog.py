@@ -8,7 +8,7 @@ from app.utils.constants import KOMISI_LIST
 class PegawaiDialog(QDialog):
     def __init__(self, pegawai_data: dict = None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Tambah/Ubah Anggota DPRD")
+        self.setWindowTitle("Tambah/Ubah Pegawai")
         self.setMinimumWidth(500)
         self.setModal(True)
 
@@ -21,7 +21,7 @@ class PegawaiDialog(QDialog):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(16)
 
-        title = QLabel("Data Anggota DPRD")
+        title = QLabel("Data Pegawai")
         title.setFont(QFont("Inter", 20, QFont.Weight.Bold))
         layout.addWidget(title)
 

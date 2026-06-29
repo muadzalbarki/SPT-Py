@@ -28,22 +28,22 @@ class PegawaiPage(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(20)
 
-        header = QLabel("Data Anggota DPRD")
+        header = QLabel("Data Pegawai")
         header.setObjectName("pageHeader")
         layout.addWidget(header)
 
-        subtitle = QLabel("Kelola data Anggota DPRD Kota Salatiga")
+        subtitle = QLabel("Kelola data pegawai DPRD Kota Salatiga")
         subtitle.setObjectName("pageSubtitle")
         layout.addWidget(subtitle)
 
         toolbar = QHBoxLayout()
         toolbar.setSpacing(12)
 
-        self.search = SearchBar("Cari Anggota DPRD berdasarkan nama, NIP, atau jabatan...")
+        self.search = SearchBar("Cari pegawai berdasarkan nama, NIP, atau jabatan...")
         self.search.text_changed.connect(self._on_search)
         toolbar.addWidget(self.search, 1)
 
-        self.btn_tambah = ModernButton("Tambah Anggota DPRD", icon="add", variant="primary")
+        self.btn_tambah = ModernButton("Tambah Pegawai", icon="add", variant="primary")
         self.btn_tambah.setMinimumWidth(180)
         toolbar.addWidget(self.btn_tambah)
 
@@ -80,7 +80,7 @@ class PegawaiPage(QWidget):
                     PegawaiRepo.create(data)
                     self._load_data(self.search.text())
                 except Exception as e:
-                    QMessageBox.warning(self, "Error", f"Gagal menambah Anggota DPRD: {e}")
+                    QMessageBox.warning(self, "Error", f"Gagal menambah pegawai: {e}")
 
     def _edit_pegawai(self, row: int, col: int):
         pegawai_list = PegawaiRepo.get_all(search=self.search.text())
@@ -101,7 +101,7 @@ class PegawaiPage(QWidget):
         for idx in self.table.selectedIndexes():
             selected_rows.add(idx.row())
         if not selected_rows:
-            QMessageBox.warning(self, "Peringatan", "Silakan pilih Anggota DPRD yang akan dihapus")
+            QMessageBox.warning(self, "Peringatan", "Silakan pilih pegawai yang akan dihapus")
             return
 
         pegawai_list = PegawaiRepo.get_all(search=self.search.text())
@@ -109,7 +109,7 @@ class PegawaiPage(QWidget):
         if not to_delete:
             return
 
-        msg = f"Yakin ingin menghapus {len(to_delete)} Anggota DPRD berikut?\n\n"
+        msg = f"Yakin ingin menghapus {len(to_delete)} pegawai berikut?\n\n"
         msg += "\n".join(f"\u2022 {p.nama} ({p.nip})" for p in to_delete)
 
         reply = QMessageBox.question(
@@ -133,14 +133,14 @@ class PegawaiPage(QWidget):
         if file_path:
             try:
                 count = ExcelService.import_pegawai(file_path)
-                QMessageBox.information(self, "Sukses", f"{count} Anggota DPRD berhasil diimport")
+                QMessageBox.information(self, "Sukses", f"{count} pegawai berhasil diimport")
                 self._load_data(self.search.text())
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Gagal import: {e}")
 
     def _export_excel(self):
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Export Excel", "Data Anggota DPRD.xlsx", "Excel Files (*.xlsx)"
+            self, "Export Excel", "Data Pegawai DPRD.xlsx", "Excel Files (*.xlsx)"
         )
         if file_path:
             try:
